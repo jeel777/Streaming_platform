@@ -1,0 +1,5 @@
+// why do we create this file 
+// to make sure that the public folder is included in the git repository
+// because git does not track empty folders, so we need to create a file in the public folder to 
+// make sure that it is included in the repository
+// .gitkeep is a convention for a file that is used to keep an empty folder in the git repository
