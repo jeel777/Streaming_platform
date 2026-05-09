@@ -1,8 +1,9 @@
 import dotenv from "dotenv"
 import connectDB from "./db/index.js"
 import express from "express"
+import {app} from "./app.js"
 
-const app=express()
+app.use(express.json())
 
 dotenv.config({
     path:'./env'
@@ -11,7 +12,7 @@ dotenv.config({
 // i called async func that return promise we can handle it with then and catch.
 connectDB()
 .then(()=>{
-    app.listen(process.env.PORT || 7000,()=>{
+    app.listen(process.env.PORT || 8000,()=>{
         console.log(`server is running at port ${process.env.PORT}`);
     })
 })

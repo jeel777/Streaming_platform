@@ -19,4 +19,17 @@ app.use(express.urlencoded({extended:true,limit:"16kb"}))
 app.use(express.static("public")) // This line serves static files from the "public" directory.
 app.use(cookieParser()) 
 
+// importing routes
+import userRoutes from "./routes/user.routes.js"
+
+// routers declaration
+// when /users called control passed to userRoutes for next req /users/register, /users/login, etc. will be handled by userRoutes
+app.use("/api/v1/users",userRoutes) // this line tells the app to use the userRoutes for any request that starts with /users
+
+// why api/v1/users?
+// "api" indicates that these routes are part of the API, 
+// "v1" indicates the version of the API (this allows for versioning in the future), 
+// and "users" indicates that these routes are related to user operations. 
+
+
 export {app}
