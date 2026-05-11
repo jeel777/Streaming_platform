@@ -1,5 +1,6 @@
 // this file is responsible for uploading files to cloudinary and deleting them from local storage after uploading
 import {v2} from "cloudinary";
+import cloudinary from "cloudinary";
 import fs from "fs";
 
 cloudinary.config({
@@ -17,11 +18,15 @@ try {
         throw new Error("No file path provided");
     }
     // uploading file to cloudinary
-    const response=await cloudinary.uploader.upload({
-        resource_type:"auto",
-    })
+   const response = await cloudinary.uploader.upload(
+    localFilePath,
+    {
+        resource_type: "auto",
+    }
+)
 
     console.log("File has been uploaded on cloudinary successfully",response.url);
+    fs.unlinkSync(localFilePath); // deleting the file from local storage
     return response;
     
 } catch (error) {

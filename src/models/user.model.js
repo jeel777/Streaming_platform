@@ -53,14 +53,13 @@ const UserSchema=new Schema({
 
 
 // used to bcrypt the password before saving the user document to the database.
-UserSchema.pre("save",async function(next){ // this refers to the current user document being saved
+UserSchema.pre("save",async function(){ // this refers to the current user document being saved
 
 if(!this.isModified("password")){ // if the password field has not been modified, we can skip hashing and move to the next middleware or save operation
-    return next();
+    return;
 }
 
 this.password=await bcrypt.hash(this.password,10) // this.password is the plain text password that the user has set, and we are hashing it with a salt round of 10 for security. 
-next();             // The hashed password will then be stored in the database instead of the plain text password.
 })
 
 

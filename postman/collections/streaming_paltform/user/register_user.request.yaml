@@ -1,0 +1,49 @@
+$kind: http-request
+name: register_user
+url: "{{server}}/users/register?fullname=Jeel&email=meow@&username=jeeeeel&avatar="
+method: POST
+queryParams:
+  - key: fullname
+    value: Jeel
+  - key: email
+    value: meow@
+  - key: username
+    value: jeeeeel
+  - key: avatar
+    value: ""
+body:
+  type: formdata
+  content:
+    - type: text
+      key: fullname
+      value: Jeel
+      description: ""
+      disabled: false
+    - type: text
+      key: email
+      value: meow09@gmail.com
+      description: ""
+      disabled: false
+    - type: text
+      key: password
+      value: "12345"
+      description: ""
+      disabled: false
+    - type: text
+      key: username
+      value: meowww7
+      description: ""
+      disabled: false
+    - type: file
+      key: avatar
+      src:
+        - postman-cloud:///1f14ce99-5d65-4a60-b7e1-5036691d0448
+      description: ""
+      disabled: false
+    - type: file
+      key: coverImage
+      src:
+        - postman-cloud:///1f14ce9a-9b41-4b80-8b2f-d0125f0dbcb2
+      description: ""
+      disabled: false
+order: 1778472779905
