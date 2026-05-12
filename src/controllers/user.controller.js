@@ -8,6 +8,25 @@ import {uploadOnCloudinary} from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 
+const generateAccessAndRefreshTokens=async(userId)=>{ // this function generates access and refresh tokens for a user based on their user ID. It takes the user ID as an argument and returns an object containing the generated access token and refresh token.
+
+try {
+    const user=await User.findById(userId);
+    const accessToken=user.generateAccessToken();
+    const refreshToken=user.generateRefreshToken();
+
+    user.refreshToken=refreshToken;
+    await user.save({validateBeforeSave:false}) // this saves the user document with the new refresh token. The validateBeforeSave option is set to false to skip validation, as we are only updating the refresh token and not modifying any other fields that require validation.;
+
+    return {accessToken,refreshToken}
+
+} catch (error) {
+    throw new ApiError(500,"Failed to generate tokens")
+}
+
+
+}
+
 const registerUser=asyncHandler(async(req,res)=>{
    
     const {fullname,email,password,username}=req.body;
@@ -76,5 +95,86 @@ const registerUser=asyncHandler(async(req,res)=>{
 
 })
 
+const loginUser=asyncHandler(async(req,res)=>{
+    const {emaol,password,username}=req.body;
+    if(!username && !email){
+        throw new ApiError(400,"Email or username is required")
+    }
+    if(!password){
+        throw new ApiError(400,"Password is required")
+    }
 
-export {registerUser}
+    const user=await User.findOne({
+        $or:[{email},{username}]
+    })
+
+    if(!user){
+        throw new ApiError(404,"User not found")
+    }
+
+    const ispasswordmatch=await user.isPasswordCorrect(password)
+
+    if(!ispasswordmatch){
+        throw new ApiError(401,"Invalid password")
+    }
+
+    await generateAccessAndRefreshTokens(user._id)
+
+    const {accessToken,refreshToken}=await generateAccessAndRefreshTokens(user._id) // this calls the generateAccessAndRefreshTokens function with the user's ID to generate new access and refresh tokens. The generated tokens are destructured into accessToken and refreshToken variables.
+
+    const loggedInUser=await User.findById(user._id).select("-password -refreshToken") // this retrieves the logged-in user's data from the database using the findById method of the User model. The user's password and refresh token are excluded from the retrieved data using the select method with "-password -refreshToken". The retrieved user data is stored in the loggedInUser variable.
+  
+   // this is options for setting the refresh token in the cookie. The httpOnly option is set to true to prevent client-side JavaScript from accessing the cookie, enhancing security. The secure option is set to true in production environments to ensure that the cookie is only sent over HTTPS. The sameSite option is set to "strict" to prevent the cookie from being sent in cross-site requests, providing additional protection against CSRF attacks. The maxAge option is set to 7 days (in milliseconds) to specify the duration for which the refresh token cookie will be valid.
+    const options={
+        httpOnly:true,
+        secure:process.env.NODE_ENV==="production",
+        sameSite:"strict",
+        maxAge:7*24*60*60*1000 // 7 days
+    }
+
+    return res.status(200).
+    cookie("refreshToken",refreshToken,options)
+    .cookie("accessToken",accessToken,options)
+    .json(
+        new ApiResponse(200,
+            {
+                user:loggedInUser,
+                accessToken,
+                refreshToken
+             },
+             "User logged in successfully"  
+            )
+            
+
+        
+    )
+})
+
+const logoutUser=asyncHandler(async(req,res)=>{
+
+    await user.findByIdAndUpdate(req.user._id,
+        {
+            $set:{refreshToken:null}
+        },
+        {
+            new:true
+        }
+    ) // this updates the user's document in the database to set the refreshToken field to null, effectively invalidating the refresh token and logging the user out.
+
+    const options={
+        httpOnly:true,
+        secure:process.env.NODE_ENV==="production",
+        sameSite:"strict",
+        maxAge:0 // setting the maxAge to 0 will immediately expire the cookie, effectively removing it from the client's browser.
+    }
+
+    return res.status(200).clearCookie("accessToken",options).clearCookie("refreshToken",options).
+    json(
+        new ApiResponse(200,null,"User logged out successfully")
+    )
+
+
+})
+
+
+export {registerUser,loginUser,logoutUser}
