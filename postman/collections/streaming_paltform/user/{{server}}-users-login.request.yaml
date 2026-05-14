@@ -1,0 +1,12 @@
+$kind: http-request
+name: "{{server}}/users/login"
+url: "{{server}}/users/login"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+        "email":"one@gamil.com",
+        "password":"Meowww"
+    }
+order: 1169955835978740

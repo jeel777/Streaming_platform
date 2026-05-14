@@ -1,7 +1,7 @@
 // this is the router for user related routes, such as registering a user, logging in a user, etc.
 
 import {Router} from "express";
-import {loginUser, registerUser} from "../controllers/user.controller.js";
+import {loginUser, registerUser,logoutUser} from "../controllers/user.controller.js";
 import {upload} from "../middlewares/multer.middleware.js"; // this is the multer middleware that we will use to handle file uploads for avatar and coverImage fields in the user registration route.
 import { verifyJWT } from "../middlewares/auth.middleware.js"; 
 
