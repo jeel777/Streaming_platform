@@ -6,6 +6,7 @@ import {ApiError} from "../utils/ApiError.js";
 import {User} from "../models/user.model.js";
 import {uploadOnCloudinary} from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import jwt from "jsonwebtoken";
 
 
 const generateAccessAndRefreshTokens=async(userId)=>{ // this function generates access and refresh tokens for a user based on their user ID. It takes the user ID as an argument and returns an object containing the generated access token and refresh token.
@@ -173,8 +174,56 @@ const logoutUser=asyncHandler(async(req,res)=>{
         new ApiResponse(200,null,"User logged out successfully")
     )
 
+})
 
+const refreshAcessToken=asyncHandler(async(req,res)=>{
+    const incomingRefreshToken=req.cookies.refreshToken || req.body.refreshToken; // this retrieves the incoming refresh token from either the cookies of the request or the request body. It checks if the req.cookies object exists and if it contains a refreshToken cookie. If it does, it retrieves the value of the refreshToken cookie. If not, it checks the request body for a refreshToken field and retrieves its value.
+
+    if(!incomingRefreshToken){
+        throw new ApiError(401,"Unauthorized: No refresh token provided") // if no refresh token is found in either the cookies or the request body, an ApiError is thrown with a status code of 401 and a message indicating that the request is unauthorized because no refresh token was provided.
+    }
+
+   try {
+     const decodedToken=jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET);
+ 
+     const user= User.findById(decodedToken.id);
+ 
+     if(!user){
+         throw new ApiError(401,"Unauthorized: Invalid refresh token");
+     }
+     
+     if(user.refreshToken !== incomingRefreshToken){
+         throw new ApiError(401,"token expired, please login again")
+     }
+     
+ // this is options for setting the new refresh token in the cookie. The httpOnly option is set to true to prevent client-side JavaScript from accessing the cookie, enhancing security. The secure option is set to true in production environments to ensure that the cookie is only sent over HTTPS. The sameSite option is set to "strict" to prevent the cookie from being sent in cross-site requests, providing additional protection against CSRF attacks. The maxAge option is set to 7 days (in milliseconds) to specify the duration for which the new refresh token cookie will be valid.
+     const options={
+         httpOnly:true,
+         secure:process.env.NODE_ENV==="production",
+         sameSite:"strict",
+         maxAge:7*24*60*60*1000 // 7 days
+     }
+ 
+     const {accessToken,newrefreshToken}=await generateAccessAndRefreshTokens(user._id);
+ 
+     return res.status(200).
+     cookie("refreshToken",newrefreshToken,options)
+     .cookie("accessToken",accessToken,options)
+     .json(
+         new ApiResponse(200,{accessToken,newrefreshToken},"Access token refreshed successfully")
+     )
+   } catch (error) {
+    throw new ApiError(401,error?.message || "Unauthorized: Invalid refresh token")
+   }
+
+    // 1. We retrieved the incoming refresh token from either the cookies or the request body.
+    // 2. We verified the incoming refresh token using the jwt.verify method and decoded the token to extract the user ID.
+    // 3. We retrieved the user from the database using the extracted user ID.
+    // 4. We checked if the user exists and if the refresh token stored in the user's document matches the incoming refresh token. If not, we threw an ApiError indicating that the token is invalid or expired.
+    // 5. If the refresh token is valid, we generated new access and refresh tokens for the user using the generateAccessAndRefreshTokens function.
+    // 6. Finally, we set the new refresh token in the cookie and sent a successful response back to the client with the new access token and refresh token.
+    
 })
 
 
-export {registerUser,loginUser,logoutUser}
+export {registerUser,loginUser,logoutUser,refreshAcessToken}
