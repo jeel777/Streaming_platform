@@ -225,5 +225,121 @@ const refreshAcessToken=asyncHandler(async(req,res)=>{
     
 })
 
+const chnageCurrentUserPassword=asyncHandler(async(req,res)=>{
 
-export {registerUser,loginUser,logoutUser,refreshAcessToken}
+    const {oldPassword,newPassword}= req.body
+
+
+    // now i got old and new password 
+    // now i want to find user in database and check if old password is correct or not
+    // how will i find user in database?
+    // i will find user in database by id which is stored in req.user.id because this route is protected and user is authenticated so we have user id in req.user object
+
+    const user=await User.findById(req.user._id)
+
+    // now i have user 
+    // i will comapre the password 
+
+    const isOldPasswordCorrect=await user.isPasswordCorrect(oldPassword)
+
+    if(!isOldPasswordCorrect){
+        throw new ApiError(401,"Old password is incorrect")
+    }
+
+    user.password=newPassword; 
+    await user.save({validateBeforeSave:false})// this saves the updated user document to the database. The validateBeforeSave option is set to false to skip validation, as we are only updating the password and not modifying any other fields that require validation. 
+
+    return res.status(200).json(
+        new ApiResponse(200,null,"Password changed successfully")
+    )
+    
+
+
+})
+
+// this is a controller function to get the current user details. It is a protected route, so the user must be authenticated to access it. The user's details are stored in the req.user object, which is populated by the authentication middleware. The function simply returns the user's details in the response with a success message.
+const getCurrentUser=asyncHandler(async(req,res)=>{
+    return res.status(200).json(
+        new ApiResponse(200,req.user,"Current user retrieved successfully")
+    )
+})
+
+const updateCurrentUserDetails=asyncHandler(async(req,res)=>{
+    // we can give options according to our need 
+    // generally use differrent endpoints to update files , images 
+    // so all text data will not gone for update files,images etc..
+
+    const {fullname,email}=req.body;
+
+    if(!fullname && !email){
+        throw new ApiError(400,"At least one field is required to update") 
+    }
+
+    const user=User.findByIdAndUpdate(req.user._id,
+        {
+        $set:{
+            fullname,
+            email
+        }
+    },
+    {new:true}
+    ).select("-password") // why we select password here because we don't want to return password in response
+
+    return res.status(200).json(
+        new ApiResponse(200,user,"User details updated successfully")
+    )
+})
+
+const updateUserAvatar=asyncHandler(async(req,res)=>{
+
+    const AvatarLocalPath=req.files?.path;
+    if(!AvatarLocalPath){
+        throw new ApiError(400,"Avatar image is required")
+    }
+
+    const Avatar=await uploadOnCloudinary(AvatarLocalPath);
+
+    if(!Avatar.url){
+        throw new ApiError(500,"Failed to upload avatar image")
+    }
+
+    await User.findByIdAndUpdate(req.user._id,
+        {
+            $set:{avatar:Avatar.url}
+        },{new:true}
+    ).select("-password")
+
+    return res.status(200).json(
+        new ApiResponse(200,null,"Avatar image updated successfully")
+    )
+
+})
+
+
+const updateUserCoverImage=asyncHandler(async(req,res)=>{
+
+    const coverImageLocalPath=req.files?.path;
+    if(!coverImageLocalPath){
+        throw new ApiError(400,"Cover image is required")
+    }
+
+    const coverImage=await uploadOnCloudinary(coverImageLocalPath);
+
+    if(!coverImage.url){
+        throw new ApiError(500,"Failed to upload cover image")
+    }
+
+    await User.findByIdAndUpdate(req.user._id,
+        {
+            $set:{coverImage:coverImage.url}
+        },{new:true}
+    ).select("-password")
+
+    return res.status(200).json(
+        new ApiResponse(200,null,"Cover image updated successfully")
+    )
+})
+
+
+
+export {registerUser,loginUser,logoutUser,refreshAcessToken,chnageCurrentUserPassword,getCurrentUser,updateCurrentUserDetails,updateUserAvatar,updateUserCoverImage}
