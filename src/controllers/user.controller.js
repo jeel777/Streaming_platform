@@ -1,5 +1,5 @@
 // this is the controller for user related operations, such as registering a user, logging in a user, etc.
-
+// keep comments sort easy to read 
 
 import {asyncHandler} from "../utils/asyncHandler.js";
 import {ApiError} from "../utils/ApiError.js";
@@ -7,6 +7,8 @@ import {User} from "../models/user.model.js";
 import {uploadOnCloudinary} from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import {v2 as cloudinary} from "cloudinary";
+import mongoose from "mongoose";
 
 
 const generateAccessAndRefreshTokens=async(userId)=>{ // this function generates access and refresh tokens for a user based on their user ID. It takes the user ID as an argument and returns an object containing the generated access token and refresh token.
@@ -303,15 +305,35 @@ const updateUserAvatar=asyncHandler(async(req,res)=>{
         throw new ApiError(500,"Failed to upload avatar image")
     }
 
-    await User.findByIdAndUpdate(req.user._id,
+    const user=await User.findById(req.user._id).select("avatar");
+    const oldAvatarUrl=user?.avatar;
+
+    const updatedUser=await User.findByIdAndUpdate(req.user._id,
         {
             $set:{avatar:Avatar.url}
         },{new:true}
     ).select("-password")
 
+    if(oldAvatarUrl){
+        const oldAvatarPublicId=oldAvatarUrl
+            .split("/upload/")[1]
+            ?.replace(/^v\d+\//,"")
+            ?.replace(/\.[^/.]+$/,"");
+
+        if(oldAvatarPublicId){
+            try {
+                await cloudinary.uploader.destroy(oldAvatarPublicId);
+            } catch (error) {
+                console.error("Failed to delete old avatar image from cloudinary:", error);
+            }
+        }
+    }
+
     return res.status(200).json(
-        new ApiResponse(200,null,"Avatar image updated successfully")
+        new ApiResponse(200,updatedUser,"Avatar image updated successfully")
     )
+
+    
 
 })
 
@@ -340,6 +362,142 @@ const updateUserCoverImage=asyncHandler(async(req,res)=>{
     )
 })
 
+const getUserChannelProfile=asyncHandler(async(req,res)=>{
+
+    // in this i will use aggregation pipeline to get the user details along with the number of subscribers and videos they have uploaded
+
+    const {username}=req.params;
+    
+    if(!username?.trim()){
+        throw new ApiError(400,"Username is required")  
+    }
+
+    const channel=await User.aggregate([ // this is the aggregation pipeline to get the user details along with the number of subscribers and videos they have uploaded. The pipeline consists of multiple stages that are executed in sequence to transform the data and produce the desired output. 
+        
+            { // first pipeline stage
+                $match:{
+                    username:username.toLowerCase() 
+                }
+            },
+            { // second pipeline stage
+                $lookup:{ // in lookup stage we will join the user collection with the subscription collection to get the number of subscribers and videos they have uploaded
+
+                    from :"subscriptions", // this is the name of the collection we want to join with
+                    localField:"_id",  // this is the field from the user collection that we want to match with the foreign field in the subscriptions collection
+                    foreignField:"channel", // this is the field from the subscriptions collection that we want to match with the local field in the user collection
+                    as:"subscribers" // this is the name of the field that will be added to the user document to store the joined data from the subscriptions collection
+
+                } // from this loopup i will get my subscribers, means how many people are subscribed to my channel
+            },
+            {
+                $lookup:{
+                    from:"subscriptions",
+                    localField:"_id",
+                    foreignField:"subscriber",
+                    as:"subscribedTo"
+                
+                } // from this lookup i will get my subscriptions, means to which channels i am subscribed,
+            },
+            {
+                $addFields:{ 
+                    subscribersCount:{ // this is my channels subscribers count, means how many people are subscribed to my channel
+                        $size:"$subscribers"
+                    },
+                    channelSubscribedToCount:{ // this is my channels subscribed to count, means to how many channels i am subscribed
+                        $size:"$subscribedTo"
+                    },
+                    isSubscribed:{
+                        $cond:{
+                            if:{
+                                $in:[req.user._id,"$subscribers.subscriber"]
+                            },
+                            then:true, // if subscribed give true to frontend 
+                            else:false // else give false to frontend
+                        }
+                    }
+                }
+            },
+            {
+                
+                $project:{ // select fields which we have to send to frontend 
+                    username:1,
+                    fullname:1,
+                    email:1,
+                    avatar:1,
+                    coverImage:1,
+                    subscribersCount:1,
+                    channelSubscribedToCount:1,
+                    isSubscribed:1
+                }
 
 
-export {registerUser,loginUser,logoutUser,refreshAcessToken,chnageCurrentUserPassword,getCurrentUser,updateCurrentUserDetails,updateUserAvatar,updateUserCoverImage}
+            }
+        
+    ])
+
+    if(!channel || channel.length===0){
+        throw new ApiError(404,"Channel not found")
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200,channel[0],"Channel profile retrieved successfully")
+    )
+
+
+
+})
+
+
+const getwatchHostory=asyncHandler(async(req,res)=>{
+    const user=await User.aggregate([
+        {
+            $match:{
+                _id:new mongoose.Types.ObjectId(req.user._id) // why we are using mongoose.Types.ObjectId because in aggregation pipeline we have to match the _id field with the user id which is in string format, so we have to convert it to ObjectId format using mongoose.Types.ObjectId
+            } 
+        },{
+            $lookup:{
+
+                from:"videos",
+                localField:"watchHistory",
+                foreignField:"_id",
+                as:"watchedVideos",
+                // from this lookup i will get all the videos which are in my watch history, means all the videos which i have watched, and they will be stored in the watchedVideos field of the user document
+           
+                pipeline:[ // this is the pipeline to get the owner details of each video in the watch history, because in the video model we have a field called owner which is a reference to the user model, so we will use lookup to get the owner details of each video in the watch history and store it in the owner field of each video document in the watchedVideos array
+                    {
+                        $lookup:{
+                            from:"users",
+                            localField:"owner",
+                            foreignField:"_id",
+                            as:"owner",
+
+                            pipeline:[
+                                {
+                                    $project:{
+                                        fullname:1,
+                                        username:1,
+                                        avatar:1
+                                    }
+                                }
+                            ]
+                        }
+                    },{
+                        $addFields:{ // this is to add the owner field to each video document in the watchedVideos array, because the lookup will return an array of owner details for each video, but we want to have a single owner object for each video, so we will use $addFields to add the owner field to each video document and set it to the first element of the owner array returned by the lookup
+                            owner:{
+                                $first:"$owner"
+                            }
+                        }
+                    }
+                ]
+           
+           
+            }
+        }
+    ])
+})
+
+
+
+
+
+export {registerUser,loginUser,logoutUser,refreshAcessToken,chnageCurrentUserPassword,getCurrentUser,updateCurrentUserDetails,updateUserAvatar,updateUserCoverImage,getUserChannelProfile}
