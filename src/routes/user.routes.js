@@ -45,10 +45,9 @@ router.route("/update-current-user-details").patch(verifyJWT,updateCurrentUserDe
 router.route("/update-avatar").patch(verifyJWT,upload.single("avatar"),updateUserAvatar)
 
 router.route("/update-cover-image").patch(verifyJWT,upload.single("coverImage"),updateUserCoverImage)
-router.route("/c/:get-channel-profile").get(verifyJWT,getUserChannelProfile) // why /c/: ? because we want to get the channel profile of a user, and we can use the username as a parameter in the route. So the route will be /c/:username, where :username is the username of the user whose channel profile we want to get. This is a common convention used by many platforms, such as YouTube, where they use /c/ for channel profiles.
+router.route("/c/:username").get(verifyJWT,getUserChannelProfile) // why /c/: ? because we want to get the channel profile of a user, and we can use the username as a parameter in the route. So the route will be /c/:username, where :username is the username of the user whose channel profile we want to get. This is a common convention used by many platforms, such as YouTube, where they use /c/ for channel profiles.
 
 router.route("/watch-history").get(verifyJWT,getwatchHostory)
 
 
 export default router;
-

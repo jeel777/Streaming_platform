@@ -157,7 +157,7 @@ const logoutUser=asyncHandler(async(req,res)=>{
 
     await User.findByIdAndUpdate(req.user._id,
         {
-            $set:{refreshToken:null}
+            $unset:{refreshToken:1} // removes the feild from document
         },
         {
             new:true
@@ -227,7 +227,7 @@ const refreshAcessToken=asyncHandler(async(req,res)=>{
     
 })
 
-const chnageCurrentUserPassword=asyncHandler(async(req,res)=>{
+const changeCurrentUserPassword=asyncHandler(async(req,res)=>{
 
     const {oldPassword,newPassword}= req.body
 
@@ -504,4 +504,4 @@ const getwatchHostory=asyncHandler(async(req,res)=>{
 
 
 
-export {registerUser,loginUser,logoutUser,refreshAcessToken,chnageCurrentUserPassword,getCurrentUser,updateCurrentUserDetails,updateUserAvatar,updateUserCoverImage,getUserChannelProfile}
+export {registerUser,loginUser,logoutUser,refreshAcessToken,changeCurrentUserPassword,getCurrentUser,updateCurrentUserDetails,updateUserAvatar,updateUserCoverImage,getUserChannelProfile,getwatchHostory}

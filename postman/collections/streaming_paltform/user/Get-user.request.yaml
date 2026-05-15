@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{server}}/users/c/jeel"
+method: GET
+order: 4496402032309239
