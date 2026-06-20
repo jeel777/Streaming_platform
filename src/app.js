@@ -21,15 +21,35 @@ app.use(cookieParser())
 
 // importing routes
 import userRoutes from "./routes/user.routes.js"
+import videoRoutes from "./routes/video.routes.js"
+import commentRoutes from "./routes/comment.routes.js"
+import likeRoutes from "./routes/like.routes.js"
+import playlistRoutes from "./routes/playlist.routes.js"
+import tweetRoutes from "./routes/tweet.routes.js"
+import subscriptionRoutes from "./routes/subscription.routes.js"
 
 // routers declaration
-// when /users called control passed to userRoutes for next req /users/register, /users/login, etc. will be handled by userRoutes
-app.use("/api/v1/users",userRoutes) // this line tells the app to use the userRoutes for any request that starts with /users
+app.use("/api/v1/users", userRoutes)
+app.use("/api/v1/videos", videoRoutes)
+app.use("/api/v1/comments", commentRoutes)
+app.use("/api/v1/likes", likeRoutes)
+app.use("/api/v1/playlists", playlistRoutes)
+app.use("/api/v1/tweets", tweetRoutes)
+app.use("/api/v1/subscriptions", subscriptionRoutes)
 
-// why api/v1/users?
-// "api" indicates that these routes are part of the API, 
-// "v1" indicates the version of the API (this allows for versioning in the future), 
-// and "users" indicates that these routes are related to user operations. 
+// global error handler — converts ApiError into proper JSON responses
+app.use((err, req, res, next) => {
+    const statusCode = err.statusCode || 500;
+    const message = err.message || "Something went wrong";
+
+    return res.status(statusCode).json({
+        success: false,
+        statusCode,
+        message,
+        errors: err.errors || [],
+        ...(process.env.NODE_ENV !== "production" && { stack: err.stack }),
+    });
+});
 
 
 export {app}
