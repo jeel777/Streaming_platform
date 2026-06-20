@@ -1,6 +1,5 @@
 // this file is responsible for uploading files to cloudinary and deleting them from local storage after uploading
-import {v2} from "cloudinary";
-import cloudinary from "cloudinary";
+import {v2 as cloudinary} from "cloudinary";
 import fs from "fs";
 
 cloudinary.config({
@@ -30,7 +29,14 @@ try {
     return response;
     
 } catch (error) {
-    fs.unlinkSync(localFilePath); // deleting the file from local storage
+    // safely attempt to delete the local file if it exists
+    try {
+        if(localFilePath && fs.existsSync(localFilePath)){
+            fs.unlinkSync(localFilePath);
+        }
+    } catch (unlinkError) {
+        console.error("Error deleting local file:", unlinkError);
+    }
     console.error("Error uploading file to cloudinary:", error);
     return null;
 }

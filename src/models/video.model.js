@@ -1,11 +1,11 @@
-const mongoose ,{Schema}= require('mongoose');
+import mongoose, {Schema} from 'mongoose';
 // mongoose-aggregate-paginate-v2 is a plugin for Mongoose that 
 // provides pagination capabilities for MongoDB aggregate queries. 
 // It allows you to easily paginate the results of an aggregate query, 
 // which is useful when you have a large dataset and want to display it in smaller chunks on the frontend. 
 // The plugin provides methods to specify the page number, page size, and other pagination options, 
 // making it easier to manage and display paginated data in your application.
-const mongooseaggregatePaginate = require('mongoose-aggregate-paginate-v2');
+import mongooseAggregatePaginate from 'mongoose-aggregate-paginate-v2';
 
 
 
@@ -50,7 +50,6 @@ const VideoSchema=new Schema(
 
 
 
-
     
 },
     {
@@ -58,6 +57,6 @@ const VideoSchema=new Schema(
     }
 
 )
-videoSchema.plugin(mongooseaggregatePaginate)
+VideoSchema.plugin(mongooseAggregatePaginate)
 
-export const video=mongoose.model("Video",VideoSchema)
+export const Video=mongoose.model("Video",VideoSchema)

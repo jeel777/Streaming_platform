@@ -1,5 +1,4 @@
-const mongoose ,{Schema}= require('mongoose'); 
-const comment = require('./comment');
+import mongoose, {Schema} from 'mongoose';
 
 
 const LikeSchema=new Schema(
@@ -8,17 +7,14 @@ const LikeSchema=new Schema(
         video:{
             type:Schema.Types.ObjectId,
             ref:"Video",
-            required:true
         },
         comment:{
             type:Schema.Types.ObjectId,
             ref:"Comment",
-            required:true
         },
         tweet:{
             type:Schema.Types.ObjectId,
             ref:"Tweet",
-            required:true
         },
         likeby:{
             type:Schema.Types.ObjectId,

@@ -1,0 +1,11 @@
+$kind: http-request
+name: http://localhost:3000/otp
+url: http://localhost:3000/otp
+method: POST
+body:
+  type: json
+  content: |-
+    {
+        "phone":"1234567899"
+    }
+order: 1778961629872

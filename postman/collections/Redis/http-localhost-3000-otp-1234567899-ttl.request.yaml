@@ -1,0 +1,5 @@
+$kind: http-request
+name: http://localhost:3000/otp/1234567899/ttl
+url: http://localhost:3000/otp/1234567899/ttl
+method: GET
+order: 4490104904947783

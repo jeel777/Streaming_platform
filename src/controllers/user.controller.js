@@ -52,26 +52,22 @@ const registerUser=asyncHandler(async(req,res)=>{
         throw new ApiError(409,"User with this email or username already exists") // if a user with the same email or username already exists in the database, an ApiError is thrown with a status code of 409 and a message indicating that a user with this email or username already exists.
     }
 
-    const avtarLocalPath=req.files?.avatar[0]?.path; // this retrieves the local file path of the avatar image uploaded by the user. It checks if the req.files object exists and if it contains an avatar file. If it does, it retrieves the path of the first avatar file and stores it in the avtarLocalPath variable.
-    const coverImageLocalPath=req.files?.coverImage[0]?.path; // this retrieves the local file path of the cover image uploaded by the user. It checks if the req.files object exists and if it contains a coverImage file. If it does, it retrieves the path of the first coverImage file and stores it in the coverImageLocalPath variable.
+    const avatarLocalPath=req.files?.avatar?.[0]?.path; // this retrieves the local file path of the avatar image uploaded by the user. It checks if the req.files object exists and if it contains an avatar file. If it does, it retrieves the path of the first avatar file and stores it in the avatarLocalPath variable.
+    const coverImageLocalPath=req.files?.coverImage?.[0]?.path; // this retrieves the local file path of the cover image uploaded by the user. Uses optional chaining on coverImage since it may not be provided.
 
-    if(!avtarLocalPath){
+    if(!avatarLocalPath){
         throw new ApiError(400,"Avatar image is required") 
     }
-    if(!coverImageLocalPath){
-        throw new ApiError(400,"Cover image is required") 
-     }
 
-    const avatar=await uploadOnCloudinary(avtarLocalPath); // this uploads the avatar image to Cloudinary using the uploadOnCloudinary function. The local file path of the avatar image is passed as an argument to the function, and the response from Cloudinary is stored in the avatar variable.
-    const coverImage=await uploadOnCloudinary(coverImageLocalPath); // this uploads the cover image to Cloudinary using the uploadOnCloudinary function. The local file path of the cover image is passed as an argument to the function, and the response from Cloudinary is stored in the coverImage variable.
+
+
+    const avatar=await uploadOnCloudinary(avatarLocalPath); // this uploads the avatar image to Cloudinary using the uploadOnCloudinary function. The local file path of the avatar image is passed as an argument to the function, and the response from Cloudinary is stored in the avatar variable.
+    const coverImage=coverImageLocalPath ? await uploadOnCloudinary(coverImageLocalPath) : null; // upload cover image only if provided
 
 
      if(!avatar){
         throw new ApiError(500,"Failed to upload avatar image")
      }
-    if(!coverImage){    
-            throw new ApiError(500,"Failed to upload cover image")
-    }
 
     const user=await User.create({
         fullname,
@@ -79,7 +75,7 @@ const registerUser=asyncHandler(async(req,res)=>{
         password,
         username:username.toLowerCase(),
         avatar:avatar.url,
-        coverImage:coverImage.url 
+        coverImage:coverImage?.url || "" 
     
     })// this creates a new user in the database using the User model. The user's fullname, email, password, username, avatar URL, and cover image URL are passed as arguments to the create method. The created user is stored in the user variable.
     
@@ -120,8 +116,6 @@ const loginUser=asyncHandler(async(req,res)=>{
     if(!ispasswordmatch){
         throw new ApiError(401,"Invalid password")
     }
-
-    await generateAccessAndRefreshTokens(user._id)
 
     const {accessToken,refreshToken}=await generateAccessAndRefreshTokens(user._id) // this calls the generateAccessAndRefreshTokens function with the user's ID to generate new access and refresh tokens. The generated tokens are destructured into accessToken and refreshToken variables.
 
@@ -188,7 +182,7 @@ const refreshAcessToken=asyncHandler(async(req,res)=>{
    try {
      const decodedToken=jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET);
  
-     const user= User.findById(decodedToken.id);
+     const user= await User.findById(decodedToken.id);
  
      if(!user){
          throw new ApiError(401,"Unauthorized: Invalid refresh token");
@@ -206,13 +200,13 @@ const refreshAcessToken=asyncHandler(async(req,res)=>{
          maxAge:7*24*60*60*1000 // 7 days
      }
  
-     const {accessToken,newrefreshToken}=await generateAccessAndRefreshTokens(user._id);
+     const {accessToken,refreshToken}=await generateAccessAndRefreshTokens(user._id);
  
      return res.status(200).
-     cookie("refreshToken",newrefreshToken,options)
+     cookie("refreshToken",refreshToken,options)
      .cookie("accessToken",accessToken,options)
      .json(
-         new ApiResponse(200,{accessToken,newrefreshToken},"Access token refreshed successfully")
+         new ApiResponse(200,{accessToken,refreshToken},"Access token refreshed successfully")
      )
    } catch (error) {
     throw new ApiError(401,error?.message || "Unauthorized: Invalid refresh token")
@@ -277,7 +271,7 @@ const updateCurrentUserDetails=asyncHandler(async(req,res)=>{
         throw new ApiError(400,"At least one field is required to update") 
     }
 
-    const user=User.findByIdAndUpdate(req.user._id,
+    const user=await User.findByIdAndUpdate(req.user._id,
         {
         $set:{
             fullname,
@@ -294,7 +288,7 @@ const updateCurrentUserDetails=asyncHandler(async(req,res)=>{
 
 const updateUserAvatar=asyncHandler(async(req,res)=>{
 
-    const AvatarLocalPath=req.files?.path;
+    const AvatarLocalPath=req.file?.path;
     if(!AvatarLocalPath){
         throw new ApiError(400,"Avatar image is required")
     }
@@ -340,7 +334,7 @@ const updateUserAvatar=asyncHandler(async(req,res)=>{
 
 const updateUserCoverImage=asyncHandler(async(req,res)=>{
 
-    const coverImageLocalPath=req.files?.path;
+    const coverImageLocalPath=req.file?.path;
     if(!coverImageLocalPath){
         throw new ApiError(400,"Cover image is required")
     }

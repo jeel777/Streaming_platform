@@ -1,12 +1,9 @@
 import dotenv from "dotenv"
 import connectDB from "./db/index.js"
-import express from "express"
 import {app} from "./app.js"
 
-app.use(express.json())
-
 dotenv.config({
-    path:'./env'
+    path:'./.env'
 })
 
 // i called async func that return promise we can handle it with then and catch.

@@ -1,0 +1,13 @@
+$kind: http-request
+name: http://localhost:3000/verify
+url: http://localhost:3000/emails/process-one
+method: GET
+body:
+  type: json
+  content: |-
+    {
+        "to":"Jeel12@gmail.com",
+        "subject":"WOw",
+        "body":"ee"
+    }
+order: 4484131055363246
