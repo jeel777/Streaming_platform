@@ -47,7 +47,13 @@ const VideoSchema=new Schema(
             ref:"User",
             required:true
         },
-
+        thumbnailSuggestions:[{
+            frameUrl: { type: String },
+            score: { type: Number },
+            analysis: { type: String },
+            suggestedText: { type: String },
+            timestamp: { type: Number },
+        }],
 
 
     
