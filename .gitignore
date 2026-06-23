@@ -121,3 +121,6 @@ dist
 # End of https://mrkandreev.name/snippets/gitignore-generator/#Node
 implementation_plan.md
 .gitignore
+recommandation_streaming-platform.md
+thumbnail_system_explained.md
+.gitignore

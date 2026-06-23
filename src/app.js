@@ -28,6 +28,7 @@ import playlistRoutes from "./routes/playlist.routes.js"
 import tweetRoutes from "./routes/tweet.routes.js"
 import subscriptionRoutes from "./routes/subscription.routes.js"
 import thumbnailRoutes from "./routes/thumbnail.routes.js"
+import recommendationRoutes from "./routes/recommendation.routes.js"
 
 // routers declaration
 app.use("/api/v1/users", userRoutes)
@@ -38,6 +39,7 @@ app.use("/api/v1/playlists", playlistRoutes)
 app.use("/api/v1/tweets", tweetRoutes)
 app.use("/api/v1/subscriptions", subscriptionRoutes)
 app.use("/api/v1/ai", thumbnailRoutes)
+app.use("/api/v1/recommendations", recommendationRoutes)
 
 // global error handler — converts ApiError into proper JSON responses
 app.use((err, req, res, next) => {

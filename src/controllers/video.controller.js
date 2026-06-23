@@ -110,10 +110,20 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
 // POST /api/v1/videos — upload a new video
 const publishAVideo = asyncHandler(async (req, res) => {
-    const { title, description } = req.body;
+    const { title, description, tags } = req.body;
 
     if (!title?.trim() || !description?.trim()) {
         throw new ApiError(400, "Title and description are required");
+    }
+
+    // Parse tags — accept JSON array or comma-separated string
+    let parsedTags = [];
+    if (tags) {
+        if (Array.isArray(tags)) {
+            parsedTags = tags.map((t) => t.trim()).filter(Boolean);
+        } else if (typeof tags === "string") {
+            parsedTags = tags.split(",").map((t) => t.trim()).filter(Boolean);
+        }
     }
 
     const videoLocalPath = req.files?.videoFile?.[0]?.path;
@@ -144,6 +154,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
         description,
         duration: videoFile.duration || 0,
         owner: req.user._id,
+        tags: parsedTags,
     });
 
     const createdVideo = await Video.findById(video._id);
@@ -253,7 +264,7 @@ const getVideoById = asyncHandler(async (req, res) => {
 // PATCH /api/v1/videos/:videoId — update video details
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
-    const { title, description } = req.body;
+    const { title, description, tags } = req.body;
 
     if (!mongoose.isValidObjectId(videoId)) {
         throw new ApiError(400, "Invalid video ID");
@@ -272,6 +283,15 @@ const updateVideo = asyncHandler(async (req, res) => {
 
     const updateData = {};
     if (title?.trim()) updateData.title = title;
+
+    // Parse tags — accept JSON array or comma-separated string
+    if (tags !== undefined) {
+        if (Array.isArray(tags)) {
+            updateData.tags = tags.map((t) => t.trim()).filter(Boolean);
+        } else if (typeof tags === "string") {
+            updateData.tags = tags.split(",").map((t) => t.trim()).filter(Boolean);
+        }
+    }
     if (description?.trim()) updateData.description = description;
 
     // handle thumbnail update
