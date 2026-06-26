@@ -124,3 +124,8 @@ implementation_plan.md
 recommandation_streaming-platform.md
 thumbnail_system_explained.md
 .gitignore
+
+# Python virtual environment (for Whisper transcription)
+.venv/
+__pycache__/
+scripts/__pycache__/

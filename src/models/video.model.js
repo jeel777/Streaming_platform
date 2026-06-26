@@ -59,6 +59,10 @@ const VideoSchema=new Schema(
             suggestedText: { type: String },
             timestamp: { type: Number },
         }],
+        hasTranscript:{
+            type: Boolean,
+            default: false
+        },
 
 
     

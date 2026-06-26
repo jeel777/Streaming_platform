@@ -90,4 +90,66 @@ If fewer than 3 frames are provided, return as many as available.`;
     }
 };
 
-export { analyzeThumbnailCandidates };
+/**
+ * Generate a summary, key topics, and chapter markers from a transcript.
+ *
+ * @param {string} transcriptText - The full transcript text
+ * @param {string} videoTitle - The title of the video for context
+ * @param {number} videoDuration - Video duration in seconds
+ * @returns {Promise<Object>} { summary, keyTopics, chapters }
+ */
+const generateTranscriptSummary = async (transcriptText, videoTitle = "", videoDuration = 0) => {
+    // Truncate very long transcripts to avoid token limits (Gemini Flash: ~1M tokens)
+    const maxChars = 30000;
+    const truncatedText =
+        transcriptText.length > maxChars
+            ? transcriptText.substring(0, maxChars) + "\n\n[... transcript truncated ...]"
+            : transcriptText;
+
+    const prompt = `You are a professional video content analyst.
+I am giving you the full transcript of a video.
+${videoTitle ? `Video title: "${videoTitle}"` : ""}
+${videoDuration ? `Video duration: ${Math.round(videoDuration / 60)} minutes` : ""}
+
+TRANSCRIPT:
+"""
+${truncatedText}
+"""
+
+Analyze this transcript and provide:
+
+1. **Summary**: A concise 2-4 sentence summary of what the video covers.
+2. **Key Topics**: A list of 3-7 main topics or themes discussed (short phrases).
+3. **Chapters**: Suggested chapter markers that divide the video into logical sections.
+   Each chapter should have an estimated timestamp (in seconds from the start) and a short title.
+   Provide 3-8 chapters depending on video length.
+
+Return ONLY valid JSON in this exact format:
+{
+  "summary": "This video covers...",
+  "keyTopics": ["Topic 1", "Topic 2", "Topic 3"],
+  "chapters": [
+    { "timestamp": 0, "title": "Introduction" },
+    { "timestamp": 120, "title": "Main Topic" }
+  ]
+}`;
+
+    try {
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        const parsed = JSON.parse(text);
+
+        return {
+            summary: parsed.summary || "Summary not available.",
+            keyTopics: parsed.keyTopics || [],
+            chapters: parsed.chapters || [],
+        };
+    } catch (error) {
+        console.error("Gemini transcript summary error:", error);
+        throw new Error(`Gemini transcript summary failed: ${error.message}`);
+    }
+};
+
+export { analyzeThumbnailCandidates, generateTranscriptSummary };
