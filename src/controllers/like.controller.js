@@ -120,15 +120,15 @@ const getLikedVideos = asyncHandler(async (req, res) => {
     const likedVideos = await Like.aggregate([
         {
             $match: {
-                likeby: new mongoose.Types.ObjectId(req.user._id),
-                video: { $exists: true, $ne: null },
+                likeby: new mongoose.Types.ObjectId(req.user._id),   // we are starting from like collection bec it has video and who liked it 
+                video: { $exists: true, $ne: null },                 // we will find userA from there make video true bec we have comment and tweet also 
             },
         },
         {
-            $sort: { createdAt: -1 },
+            $sort: { createdAt: -1 },  // to get recent like video at first
         },
         {
-            $lookup: {
+            $lookup: {               // now we have videoId but we have to display video details like owner , video thumbnail , title etc..
                 from: "videos",
                 localField: "video",
                 foreignField: "_id",
@@ -142,7 +142,7 @@ const getLikedVideos = asyncHandler(async (req, res) => {
                             as: "owner",
                             pipeline: [
                                 {
-                                    $project: {
+                                    $project: {            // getting infor which is required
                                         fullname: 1,
                                         username: 1,
                                         avatar: 1,
@@ -152,25 +152,27 @@ const getLikedVideos = asyncHandler(async (req, res) => {
                         },
                     },
                     {
-                        $addFields: {
-                            owner: { $first: "$owner" },
-                        },
+                        $addFields: {       // $addFields to take out the first element from the owner array 
+                            owner: { $first: "$owner" },  // because lookup always returns an array and we only have one owner for each video
+                        },        // example is like owner: [ { _id: "68b...", fullname: "Jeel", username: "jeel05", avatar: "..." } ]
+                        //  after this pipeline it will be owner: { _id: "68b...", fullname: "Jeel", username: "jeel05", avatar: "..." }
                     },
                 ],
             },
         },
         {
-            $addFields: {
+            $addFields: {       // this is also to take out the first element from the video array 
                 video: { $first: "$video" },
             },
         },
         {
-            $project: {
+            $project: {    // this is to exclude the _id field from the video because we don't want to display _id in the response
                 video: 1,
                 _id: 0,
             },
         },
-        {
+        { // this is to replace the root element with the video object 
+            
             $replaceRoot: { newRoot: "$video" },
         },
     ]);
