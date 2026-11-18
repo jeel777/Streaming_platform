@@ -12,7 +12,7 @@ import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-// all routes require authentication
+
 router.use(verifyJWT);
 
 router

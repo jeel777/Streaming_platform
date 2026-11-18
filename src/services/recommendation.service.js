@@ -3,6 +3,7 @@ import { Video } from "../models/video.model.js";
 import { Like } from "../models/likes.js";
 import { Subscription } from "../models/subscription.model.js";
 import { User } from "../models/user.model.js";
+import { cacheWrap } from "../utils/cache.js";
 
 /**
  * ── Strategy 1: Trending / Popular Videos ──────────────────────────
@@ -15,116 +16,125 @@ import { User } from "../models/user.model.js";
 const getTrendingVideos = async (page = 1, limit = 10) => {
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
-    const skip = (pageNum - 1) * limitNum;
 
-    const pipeline = [
-        { $match: { ispublished: true } },
+    // Cache trending results for 5 minutes (most expensive + most accessed query)
+    const cacheKey = `trending:page:${pageNum}:limit:${limitNum}`;
+    return cacheWrap(
+        cacheKey,
+        async () => {
+            const skip = (pageNum - 1) * limitNum;
 
-        // Count likes for each video
-        {
-            $lookup: {
-                from: "likes",
-                localField: "_id",
-                foreignField: "video",
-                as: "likeDocs",
-            },
-        },
+            const pipeline = [
+                { $match: { ispublished: true } },
 
-        // Count comments for each video
-        {
-            $lookup: {
-                from: "comments",
-                localField: "_id",
-                foreignField: "video",
-                as: "commentDocs",
-            },
-        },
-
-        // Owner details
-        {
-            $lookup: {
-                from: "users",
-                localField: "owner",
-                foreignField: "_id",
-                as: "owner",
-                pipeline: [
-                    {
-                        $project: {
-                            fullname: 1,
-                            username: 1,
-                            avatar: 1,
-                        },
+                // Count likes for each video
+                {
+                    $lookup: {
+                        from: "likes",
+                        localField: "_id",
+                        foreignField: "video",
+                        as: "likeDocs",
                     },
-                ],
-            },
-        },
-
-        // Compute trending score
-        {
-            $addFields: {
-                owner: { $first: "$owner" },
-                likesCount: { $size: "$likeDocs" },
-                commentsCount: { $size: "$commentDocs" },
-                ageInDays: {
-                    $divide: [
-                        { $subtract: [new Date(), "$createdAt"] },
-                        1000 * 60 * 60 * 24, // ms → days
-                    ],
                 },
-            },
-        },
-        {
-            $addFields: {
-                trendingScore: {
-                    $subtract: [
-                        {
-                            $add: [
-                                { $multiply: ["$views", 1.0] },
-                                { $multiply: ["$likesCount", 3.0] },
-                                { $multiply: ["$commentsCount", 2.0] },
+
+                // Count comments for each video
+                {
+                    $lookup: {
+                        from: "comments",
+                        localField: "_id",
+                        foreignField: "video",
+                        as: "commentDocs",
+                    },
+                },
+
+                // Owner details
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "owner",
+                        foreignField: "_id",
+                        as: "owner",
+                        pipeline: [
+                            {
+                                $project: {
+                                    fullname: 1,
+                                    username: 1,
+                                    avatar: 1,
+                                },
+                            },
+                        ],
+                    },
+                },
+
+                // Compute trending score
+                {
+                    $addFields: {
+                        owner: { $first: "$owner" },
+                        likesCount: { $size: "$likeDocs" },
+                        commentsCount: { $size: "$commentDocs" },
+                        ageInDays: {
+                            $divide: [
+                                { $subtract: [new Date(), "$createdAt"] },
+                                1000 * 60 * 60 * 24, // ms → days
                             ],
                         },
-                        { $multiply: ["$ageInDays", 0.5] },
-                    ],
+                    },
                 },
-            },
+                {
+                    $addFields: {
+                        trendingScore: {
+                            $subtract: [
+                                {
+                                    $add: [
+                                        { $multiply: ["$views", 1.0] },
+                                        { $multiply: ["$likesCount", 3.0] },
+                                        { $multiply: ["$commentsCount", 2.0] },
+                                    ],
+                                },
+                                { $multiply: ["$ageInDays", 0.5] },
+                            ],
+                        },
+                    },
+                },
+
+                { $sort: { trendingScore: -1 } },
+
+                // Clean up internal fields
+                {
+                    $project: {
+                        likeDocs: 0,
+                        commentDocs: 0,
+                        ageInDays: 0,
+                    },
+                },
+            ];
+
+            // Count total before pagination
+            const countPipeline = [
+                ...pipeline.slice(0, 1), // just the $match
+                { $count: "total" },
+            ];
+            const countResult = await Video.aggregate(countPipeline);
+            const totalDocs = countResult[0]?.total || 0;
+
+            // Paginate
+            pipeline.push({ $skip: skip }, { $limit: limitNum });
+
+            const videos = await Video.aggregate(pipeline);
+
+            return {
+                videos,
+                pagination: {
+                    page: pageNum,
+                    limit: limitNum,
+                    totalDocs,
+                    totalPages: Math.ceil(totalDocs / limitNum),
+                    hasNextPage: pageNum * limitNum < totalDocs,
+                },
+            };
         },
-
-        { $sort: { trendingScore: -1 } },
-
-        // Clean up internal fields
-        {
-            $project: {
-                likeDocs: 0,
-                commentDocs: 0,
-                ageInDays: 0,
-            },
-        },
-    ];
-
-    // Count total before pagination
-    const countPipeline = [
-        ...pipeline.slice(0, 1), // just the $match
-        { $count: "total" },
-    ];
-    const countResult = await Video.aggregate(countPipeline);
-    const totalDocs = countResult[0]?.total || 0;
-
-    // Paginate
-    pipeline.push({ $skip: skip }, { $limit: limitNum });
-
-    const videos = await Video.aggregate(pipeline);
-
-    return {
-        videos,
-        pagination: {
-            page: pageNum,
-            limit: limitNum,
-            totalDocs,
-            totalPages: Math.ceil(totalDocs / limitNum),
-            hasNextPage: pageNum * limitNum < totalDocs,
-        },
-    };
+        300 // 5 minute TTL
+    );
 };
 
 /**

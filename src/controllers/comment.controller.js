@@ -113,7 +113,7 @@ const addComment = asyncHandler(async (req, res) => {
         owner: req.user._id,
     });
 
-    const createdComment = await Comment.findById(comment._id).populate(
+    const createdComment = await Comment.findById(comment._id).populate( // populate is used to get the data from the referenced collection 
         "owner",
         "fullname username avatar"
     );

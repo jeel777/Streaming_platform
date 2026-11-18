@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend Features — Interview Deep Dive</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --primary-light: #eff6ff;
+            --text-dark: #0f172a;
+            --text-body: #334155;
+            --text-muted: #64748b;
+            --border-light: #e2e8f0;
+            --card-bg: #f8fafc;
+            --code-bg: #0f172a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-body);
+            background: #ffffff;
+            line-height: 1.6;
+            font-size: 13px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .container {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 24px 32px;
+        }
+
+        /* Document Header */
+        .doc-header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #ffffff;
+            border-radius: 12px;
+            padding: 28px 32px;
+            margin-bottom: 24px;
+            break-after: avoid;
+            page-break-after: avoid;
+        }
+
+        .header-badge {
+            display: inline-block;
+            background: rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+            border: 1px solid rgba(147, 197, 253, 0.3);
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 3px 10px;
+            border-radius: 16px;
+            margin-bottom: 10px;
+        }
+
+        .main-title {
+            font-size: 24px;
+            font-weight: 800;
+            line-height: 1.25;
+            color: #ffffff;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .header-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-size: 11.5px;
+            color: #94a3b8;
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            padding-top: 12px;
+        }
+
+        /* Section Headings */
+        h2.section-title {
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-top: 30px;
+            margin-bottom: 14px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            break-after: avoid;
+            page-break-after: avoid;
+        }
+
+        .section-num {
+            background: #e0e7ff;
+            color: #4338ca;
+            padding: 1px 7px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        h3.subsection-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-top: 18px;
+            margin-bottom: 8px;
+            break-after: avoid;
+            page-break-after: avoid;
+        }
+
+        /* Questions */
+        .question-header {
+            margin-top: 18px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            break-after: avoid;
+            page-break-after: avoid;
+        }
+
+        .q-badge {
+            background: #fef3c7;
+            color: #b45309;
+            font-weight: 700;
+            font-size: 10px;
+            padding: 2px 7px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+        }
+
+        .q-title {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.35;
+        }
+
+        /* Answers & Quotes */
+        blockquote.quote-answer {
+            background: #f8fafc;
+            border-left: 3.5px solid #3b82f6;
+            border-radius: 0 6px 6px 0;
+            padding: 10px 14px;
+            margin: 8px 0 14px 0;
+            color: #334155;
+            font-size: 12.5px;
+            line-height: 1.55;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        blockquote.quote-answer p {
+            margin-bottom: 6px;
+        }
+
+        blockquote.quote-answer p:last-child {
+            margin-bottom: 0;
+        }
+
+        blockquote.quote-answer strong {
+            color: #0f172a;
+        }
+
+        /* Callouts */
+        .callout {
+            display: flex;
+            gap: 10px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            margin: 14px 0;
+            font-size: 12.5px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        .callout-icon {
+            font-size: 16px;
+            line-height: 1.2;
+        }
+
+        .callout-tip {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+        }
+
+        .callout-tip strong {
+            color: #047857;
+        }
+
+        .callout-warning {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            color: #92400e;
+        }
+
+        .callout-note {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0 16px 0;
+            font-size: 12px;
+            background: #ffffff;
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        thead {
+            background: #f1f5f9;
+        }
+
+        th {
+            padding: 8px 10px;
+            text-align: left;
+            font-weight: 700;
+            color: #334155;
+            border-bottom: 1px solid #cbd5e1;
+            font-size: 11.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+            vertical-align: top;
+        }
+
+        tr:nth-child(even) td {
+            background: #f8fafc;
+        }
+
+        /* Code Blocks */
+        pre {
+            background: #0f172a;
+            color: #f1f5f9;
+            padding: 12px 14px;
+            border-radius: 6px;
+            margin: 10px 0 14px 0;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', 'SF Mono', Consolas, Monaco, monospace;
+            font-size: 11.2px;
+            line-height: 1.45;
+            break-inside: avoid;
+            page-break-inside: avoid;
+            border: 1px solid #1e293b;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', 'SF Mono', Consolas, Monaco, monospace;
+            font-size: 11px;
+            padding: 1px 4px;
+            background: #f1f5f9;
+            color: #dc2626;
+            border-radius: 3px;
+            border: 1px solid #e2e8f0;
+        }
+
+        pre code {
+            padding: 0;
+            background: transparent;
+            color: inherit;
+            border: none;
+        }
+
+        /* Code Link Badges */
+        .code-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            background: #f1f5f9;
+            padding: 0 5px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+            font-size: 10.5px;
+            color: #475569;
+        }
+
+        .code-link code {
+            border: none;
+            background: transparent;
+            padding: 0;
+            color: #2563eb;
+            font-weight: 600;
+        }
+
+        /* HTTP Badges */
+        .http-badge {
+            display: inline-block;
+            font-size: 9.5px;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.5px;
+        }
+
+        .http-get { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+        .http-post { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+        .http-patch { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+        .http-delete { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+        .http-put { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+
+        .divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 20px 0;
+        }
+
+        p {
+            margin-bottom: 10px;
+        }
+
+        ul, ol {
+            margin: 6px 0 12px 20px;
+        }
+
+        li {
+            margin-bottom: 3px;
+        }
+
+        /* Syntax colors */
+        .hljs-keyword { color: #f472b6; font-weight: 600; }
+        .hljs-string { color: #34d399; }
+        .hljs-number { color: #fb923c; }
+        .hljs-function { color: #60a5fa; }
+        .hljs-comment { color: #64748b; font-style: italic; }
+        .hljs-title { color: #38bdf8; font-weight: 600; }
+
+        @media print {
+            @page {
+                size: A4;
+                margin: 14mm 12mm 14mm 12mm;
+            }
+
+            body {
+                font-size: 11pt;
+                line-height: 1.5;
+            }
+
+            .container {
+                max-width: 100%;
+                padding: 0;
+            }
+
+            pre, blockquote, table, .callout, .question-header {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            h2, h3 {
+                break-after: avoid;
+                page-break-after: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="doc-header">
+            <div class="header-badge">Backend System Design & Interview Guide</div>
+            <h1 class="main-title">🎯 Backend Features — Interview Deep Dive</h1>
+            <div class="header-meta">
+                <span>📚 Architecture Deep Dive</span>
+                <span>⚡ Production Patterns</span>
+                <span>🛡️ Real Codebase References</span>
+            </div>
+        </div>
+        <p>Based on your actual codebase. Every answer references <strong>your real code</strong>.</p>
+<div class="divider"></div>
+<h2 class="section-title"><span class="section-num">📌</span> Quick Architecture Overview (Say This First)</h2><blockquote class="quote-answer">"It's a REST API built with **Node.js + Express + MongoDB** (Mongoose ODM). Authentication uses **JWT with dual tokens** — short-lived access token + long-lived refresh token, both stored in **HttpOnly cookies** to prevent XSS. I use **MongoDB aggregation pipelines** heavily for joins across collections (subscribers, likes, comments) since MongoDB doesn't have native SQL-style joins. The API follows a **controller → service → model** layered architecture with centralized error handling."</blockquote><h3 class="subsection-title">Your API Route Map</h3><table>
+<thead>
+<tr>
+<th>Base Path</th>
+<th>Feature</th>
+<th>Key HTTP Methods</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/api/v1/users</code></td>
+<td>Auth, profile, watch history</td>
+<td><span class="http-badge http-post">POST</span>, <span class="http-badge http-get">GET</span>, <span class="http-badge http-patch">PATCH</span></td>
+</tr>
+<tr>
+<td><code>/api/v1/videos</code></td>
+<td>Video CRUD, search, pagination</td>
+<td><span class="http-badge http-get">GET</span>, <span class="http-badge http-post">POST</span>, <span class="http-badge http-patch">PATCH</span>, <span class="http-badge http-delete">DELETE</span></td>
+</tr>
+<tr>
+<td><code>/api/v1/subscriptions</code></td>
+<td>Subscribe/unsubscribe channels</td>
+<td><span class="http-badge http-post">POST</span>, <span class="http-badge http-get">GET</span></td>
+</tr>
+<tr>
+<td><code>/api/v1/playlists</code></td>
+<td>Playlist CRUD, add/remove videos</td>
+<td><span class="http-badge http-post">POST</span>, <span class="http-badge http-get">GET</span>, <span class="http-badge http-patch">PATCH</span>, <span class="http-badge http-delete">DELETE</span></td>
+</tr>
+<tr>
+<td><code>/api/v1/likes</code></td>
+<td>Toggle like on video/comment/tweet</td>
+<td><span class="http-badge http-post">POST</span>, <span class="http-badge http-get">GET</span></td>
+</tr>
+<tr>
+<td><code>/api/v1/comments</code></td>
+<td>Comment CRUD with pagination</td>
+<td><span class="http-badge http-post">POST</span>, <span class="http-badge http-get">GET</span>, <span class="http-badge http-patch">PATCH</span>, <span class="http-badge http-delete">DELETE</span></td>
+</tr>
+<tr>
+<td><code>/api/v1/ai</code></td>
+<td>AI thumbnails, transcription</td>
+<td><span class="http-badge http-post">POST</span>, <span class="http-badge http-get">GET</span>, <span class="http-badge http-patch">PATCH</span></td>
+</tr>
+</tbody></table>
+<div class="divider"></div>
+<h2 class="section-title"><span class="section-num">1</span> JWT Authentication with HttpOnly Cookies</h2><h3 class="subsection-title">How It Works in Your Code</h3><pre><code>Registration → Login → Access Token (short-lived) + Refresh Token (long-lived)
+                        ↓                            ↓
+                   Sent in HttpOnly cookie      Saved in DB + HttpOnly cookie
+                        ↓                            ↓
+                   Used for API requests       Used to get new access token
+</code></pre>
+<p><strong>Key implementation details from your code:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Your Implementation</th>
+<th>Code Location</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Password hashing</td>
+<td>bcrypt with salt round 10</td>
+<td><span class="code-link">📁 <code>user.model.js L56-63</code></span></td>
+</tr>
+<tr>
+<td>Access token payload</td>
+<td><code>{id, username, email, fullname}</code></td>
+<td><span class="code-link">📁 <code>user.model.js L72-81</code></span></td>
+</tr>
+<tr>
+<td>Refresh token payload</td>
+<td><code>{id}</code> only (minimal)</td>
+<td><span class="code-link">📁 <code>user.model.js L84-91</code></span></td>
+</tr>
+<tr>
+<td>Cookie options</td>
+<td><code>httpOnly: true, secure: production, sameSite: strict</code></td>
+<td><span class="code-link">📁 <code>user.controller.js L122-127</code></span></td>
+</tr>
+<tr>
+<td>Token verification</td>
+<td>Checks cookie first → then Authorization header</td>
+<td><span class="code-link">📁 <code>auth.middleware.js L11-12</code></span></td>
+</tr>
+<tr>
+<td>Refresh flow</td>
+<td>Verify refresh token → match DB → generate new pair</td>
+<td><span class="code-link">📁 <code>user.controller.js L172-219</code></span></td>
+</tr>
+<tr>
+<td>Logout</td>
+<td><code>$unset</code> refresh token from DB + clear cookies with <code>maxAge: 0</code></td>
+<td><span class="code-link">📁 <code>user.controller.js L147-170</code></span></td>
+</tr>
+</tbody></table>
+<h3 class="subsection-title">What the Interviewer Wants to Hear</h3><blockquote class="quote-answer">"I use a **dual-token strategy**. The access token is short-lived (e.g., 15 min) and contains user identity. The refresh token is long-lived (7 days) and contains only the user ID — minimizing data exposure if compromised. Both are stored in **HttpOnly cookies** — JavaScript can't read them, which **prevents XSS attacks** from stealing tokens. I also set `sameSite: strict` to **prevent CSRF attacks** and `secure: true` in production to enforce HTTPS-only transmission."</blockquote><h3 class="subsection-title">Cross Questions & Answers</h3><div class="divider"></div>
+<div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">Why HttpOnly cookies instead of localStorage?</h4></div><blockquote class="quote-answer">**localStorage is vulnerable to XSS.** If an attacker injects malicious JavaScript (e.g., through a comment or user-generated content), they can read `localStorage.getItem('token')` and steal the token. HttpOnly cookies are **inaccessible to JavaScript** — even if XSS occurs, the attacker can't extract the token. The browser automatically attaches HttpOnly cookies to every request, so the flow is seamless.</blockquote><div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">If cookies prevent XSS, what about CSRF attacks?</h4></div><blockquote class="quote-answer">"I handle CSRF with **two measures**:
+1. `sameSite: 'strict'` — the browser won't send cookies on cross-origin requests. A malicious form on `evil.com` cannot trigger authenticated requests to my API.
+2. My API only accepts `application/json` content type — HTML forms can't send JSON, so form-based CSRF attacks won't work.
+
+For extra security in production, I'd add a **CSRF token** (e.g., `csurf` middleware) for state-changing operations."</blockquote><div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">Why do you store the refresh token in the database?</h4></div><blockquote class="quote-answer">"To enable **server-side revocation**. When a user logs out, I `$unset` the refresh token from their document. Even if the cookie hasn't expired in the browser, the refresh attempt will fail because the DB token won't match. This also means I can force-logout all sessions by clearing the DB token — something you can't do with stateless JWT alone."</blockquote><p><strong>Your code</strong> — <span class="code-link">📁 <code>user.controller.js L188-190</code></span>:</p>
+<pre><code class="language-javascript">if (user.refreshToken !== incomingRefreshToken) {
+    throw new ApiError(401, &quot;token expired, please login again&quot;)
+}
+</code></pre>
+<div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">What happens if the access token expires mid-session?</h4></div><blockquote class="quote-answer">"The frontend detects a 401 response, then calls my `/api/v1/users/refresh-token` endpoint. This endpoint:
+1. Reads the refresh token from the cookie
+2. Verifies it with `jwt.verify()`
+3. Checks it matches the DB-stored token (not revoked)
+4. Generates a **new pair** of tokens (token rotation)
+5. Sets new cookies and responds
+
+This is called **refresh token rotation** — each refresh invalidates the old pair, reducing the window of compromise."</blockquote><div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">Why does the access token have more claims than the refresh token?</h4></div><blockquote class="quote-answer">"The access token carries `{id, username, email, fullname}` because it's used on **every request** — having user info avoids a DB lookup in the auth middleware... wait, actually I still do a DB lookup in my middleware."</blockquote><p><strong>⚠️ Weakness to acknowledge:</strong> Your <span class="code-link">📁 <code>auth.middleware.js L20</code></span> does <code>User.findById(decoded.id)</code> on every request despite having user info in the JWT. Say:</p>
+<blockquote class="quote-answer">"In my current implementation, I still hit the DB per request for freshness. In production, I'd **cache user data in Redis** (TTL = access token lifetime) and only hit DB on cache miss. This eliminates the DB query on most requests while keeping data fresh."</blockquote><div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">What if someone steals the refresh token cookie?</h4></div><blockquote class="quote-answer">"The damage is limited because:
+1. `httpOnly` prevents JS extraction — they'd need a network-level attack (MITM), which `secure: true` prevents on HTTPS
+2. `sameSite: strict` prevents cross-origin sending
+3. **Token rotation**: When the legitimate user refreshes, the stolen token is invalidated. If the attacker refreshes first, the legitimate user's next refresh fails → they're forced to re-login → the attacker's stolen token is also invalidated
+4. In production, I'd add **refresh token family tracking** — detect reuse and invalidate all tokens for that family"</blockquote><div class="divider"></div>
+<h2 class="section-title"><span class="section-num">2</span> Subscriptions</h2><h3 class="subsection-title">How It Works in Your Code</h3><p><strong>Schema</strong> — a simple junction/join table pattern:</p>
+<pre><code class="language-javascript">// subscription.model.js — just two references
+{ subscriber: ObjectId → User, channel: ObjectId → User }
+</code></pre>
+<p><strong>Key Patterns:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>How</th>
+<th>Code Reference</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Toggle subscribe/unsubscribe</td>
+<td>Find existing → delete if exists, create if not</td>
+<td><span class="code-link">📁 <code>subscription.controller.js L9-60</code></span></td>
+</tr>
+<tr>
+<td>Can&#39;t self-subscribe</td>
+<td><code>channelId === req.user._id.toString()</code> check</td>
+<td><span class="code-link">📁 <code>L17-19</code></span></td>
+</tr>
+<tr>
+<td>Get subscriber count</td>
+<td>Aggregation with <code>$lookup</code> + <code>$size</code></td>
+<td><span class="code-link">📁 <code>user.controller.js L366-427</code></span></td>
+</tr>
+<tr>
+<td>Check if current user subscribed</td>
+<td><code>$in</code> operator on aggregated subscribers</td>
+<td><span class="code-link">📁 <code>user.controller.js L400-408</code></span></td>
+</tr>
+<tr>
+<td>Mutual subscription check</td>
+<td>Second <code>$lookup</code> back to subscriptions</td>
+<td><span class="code-link">📁 <code>subscription.controller.js L99-135</code></span></td>
+</tr>
+<tr>
+<td>Latest video from subscribed channels</td>
+<td>Nested <code>$lookup</code> into videos with <code>$sort</code> + <code>$limit: 1</code></td>
+<td><span class="code-link">📁 <code>subscription.controller.js L193-217</code></span></td>
+</tr>
+</tbody></table>
+<h3 class="subsection-title">What the Interviewer Wants to Hear</h3><blockquote class="quote-answer">"I use a **separate Subscription collection** (junction table pattern) instead of embedding subscriber arrays in the User document. This is important because:
+1. A channel can have **millions of subscribers** — embedding would exceed MongoDB's 16MB document limit
+2. Counting subscribers is a simple `$size` on the `$lookup` result — O(1) in the aggregation
+3. The `isSubscribed` check uses `$in` to see if the current user's ID exists in the subscribers array — computed per request in the aggregation
+4. I also compute **mutual subscriptions** (does channel X subscribe back to subscriber Y?) using a second `$lookup` — useful for features like 'subscribers you know'"</blockquote><h3 class="subsection-title">Cross Questions & Answers</h3><div class="divider"></div>
+<div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">Why a separate collection instead of an array in the User document?</h4></div><blockquote class="quote-answer">"MongoDB documents have a **16MB size limit**. If I store subscribers as an array on the User document, a channel with 1 million subscribers would have 1M ObjectIds × 12 bytes = ~12MB just for that field. It would also make every User query slow. The junction table pattern:
+- Has no size limit (each subscription is its own document)
+- Can be indexed on `{subscriber, channel}` for O(1) lookups
+- Supports compound queries like 'who subscribed after date X'"</blockquote><div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">Your toggle uses two DB operations (findOne + create/delete). What about race conditions?</h4></div><blockquote class="quote-answer">"If two requests hit simultaneously, `findOne` could both return null, creating duplicate subscriptions. I'd fix this with a **compound unique index**:
+```javascript
+subscriptionSchema.index({ subscriber: 1, channel: 1 }, { unique: true });
+```
+This makes MongoDB reject the second `create()` with a duplicate key error, which I'd catch and handle gracefully. Alternatively, use `findOneAndUpdate` with `upsert: true`."</blockquote><div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">How does the subscriber count perform at scale?</h4></div><blockquote class="quote-answer">"Currently, `$lookup` + `$size` loads all subscription documents into memory to count them. For millions of subscribers, I'd instead:
+1. **Maintain a `subscriberCount` field** on the User document (denormalized counter)
+2. **Increment/decrement atomically** on subscribe/unsubscribe using `$inc: { subscriberCount: 1 }` or `$inc: { subscriberCount: -1 }`
+3. This makes the count read O(1) instead of O(n)"</blockquote><div class="divider"></div>
+<h2 class="section-title"><span class="section-num">3</span> Playlists</h2><h3 class="subsection-title">How It Works in Your Code</h3><p><strong>Schema</strong> — owner-based with video array:</p>
+<pre><code class="language-javascript">{ name, description, videos: [ObjectId → Video], owner: ObjectId → User }
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Key Detail</th>
+<th>Code Reference</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Full CRUD</td>
+<td>Create, Read, Update, Delete</td>
+<td><span class="code-link">📁 <code>playlist.controller.js</code></span></td>
+</tr>
+<tr>
+<td>Authorization</td>
+<td>Every mutation checks <code>playlist.owner === req.user._id</code></td>
+<td><span class="code-link">📁 <code>L133</code></span>, <span class="code-link">📁 <code>L174</code></span>, <span class="code-link">📁 <code>L205</code></span>, <span class="code-link">📁 <code>L253</code></span></td>
+</tr>
+<tr>
+<td>Duplicate prevention</td>
+<td><code>playlist.videos.includes(videoId)</code> check</td>
+<td><span class="code-link">📁 <code>L218</code></span></td>
+</tr>
+<tr>
+<td>Get with videos populated</td>
+<td>Aggregation pipeline with nested <code>$lookup</code> for video owners</td>
+<td><span class="code-link">📁 <code>L40-104</code></span></td>
+</tr>
+<tr>
+<td>Auto playlist cover</td>
+<td>Uses first video&#39;s thumbnail as cover: <code>$arrayElemAt: [&quot;$videos.thumbnail&quot;, 0]</code></td>
+<td><span class="code-link">📁 <code>L319-325</code></span></td>
+</tr>
+<tr>
+<td>Only published videos shown</td>
+<td><code>$match: { ispublished: true }</code> in nested pipeline</td>
+<td><span class="code-link">📁 <code>L53-55</code></span></td>
+</tr>
+</tbody></table>
+<h3 class="subsection-title">Cross Questions</h3><div class="divider"></div>
+<div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">Why embed video IDs in the playlist instead of a junction table?</h4></div><blockquote class="quote-answer">"Because playlists have a **bounded, small number of videos** (typically <500). The 16MB document limit easily handles this. Embedding also preserves **video ordering** — the array position IS the playlist order. A junction table would need an extra `position` field and re-ordering logic."</blockquote><div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">What happens to the playlist when a video is deleted?</h4></div><blockquote class="quote-answer">"**This is a known issue in my codebase.** When I delete a video ([video.controller.js L376-384](file:///Users/jeel/Desktop/streaming_platform/src/controllers/video.controller.js#L376-L384)), I clean up comments, likes, and watch history, but I don't remove the video from playlists. The `$lookup` in `getPlaylistById` would return a null entry for the deleted video. I'd fix this by adding `Playlist.updateMany({}, { $pull: { videos: videoId } })` to the delete handler."</blockquote><div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">Can you reorder videos in a playlist?</h4></div><blockquote class="quote-answer">"Not in my current implementation. I'd add a `<span class="http-badge http-patch">PATCH</span> /playlists/:id/reorder` endpoint that accepts `{ videoId, newPosition }` and uses `Array.splice()` to move the video — the array index naturally represents order."</blockquote><div class="divider"></div>
+<h2 class="section-title"><span class="section-num">4</span> Likes (Toggle Pattern)</h2><h3 class="subsection-title">How It Works in Your Code</h3><p><strong>Schema — Polymorphic Like</strong> (single collection for all likeable entities):</p>
+<pre><code class="language-javascript">{ video?: ObjectId, comment?: ObjectId, tweet?: ObjectId, likeby: ObjectId (required) }
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Key Detail</th>
+<th>Code Reference</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Toggle pattern</td>
+<td>findOne → delete if exists, create if not</td>
+<td><span class="code-link">📁 <code>like.controller.js L11-46</code></span></td>
+</tr>
+<tr>
+<td>Polymorphic model</td>
+<td>Same <code>Like</code> collection for videos, comments, tweets</td>
+<td><span class="code-link">📁 <code>likes.js L4-28</code></span></td>
+</tr>
+<tr>
+<td>Get liked videos</td>
+<td>Aggregation: filter by <code>likeby</code> + <code>video exists</code> → <code>$lookup</code> video → <code>$replaceRoot</code></td>
+<td><span class="code-link">📁 <code>like.controller.js L119-178</code></span></td>
+</tr>
+<tr>
+<td>Like count in video detail</td>
+<td><code>$lookup</code> likes + <code>$size</code> in video aggregation</td>
+<td><span class="code-link">📁 <code>video.controller.js L224-244</code></span></td>
+</tr>
+<tr>
+<td><code>isLiked</code> per user</td>
+<td><code>$in: [req.user._id, &quot;$likes.likeby&quot;]</code> inside <code>$cond</code></td>
+<td><span class="code-link">📁 <code>video.controller.js L236-239</code></span></td>
+</tr>
+</tbody></table>
+<h3 class="subsection-title">What the Interviewer Wants to Hear</h3><blockquote class="quote-answer">"I chose a **polymorphic like model** — one `Like` collection serves videos, comments, and tweets. Each like document has the `likeby` user and one of `{video, comment, tweet}` set. This avoids creating 3 separate like collections. The toggle pattern uses **find + conditional create/delete** — it's idempotent from the user's perspective (rapid clicking doesn't create issues)."</blockquote><h3 class="subsection-title">Cross Questions</h3><div class="divider"></div>
+<div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">Why a polymorphic model instead of separate VideoLike, CommentLike collections?</h4></div><blockquote class="quote-answer">"Tradeoffs:
+- **Pro**: Single collection = simpler codebase, one aggregation pipeline for 'get all liked content', easier analytics
+- **Con**: Sparse fields (each doc has 2 null refs), querying is slightly less efficient because you need `{ video: { $exists: true } }` filters
+- At scale, I'd split them into **separate collections** for index efficiency — the `{video, likeby}` compound index on a polymorphic collection also indexes documents where video is null"</blockquote><div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">How would you handle like counts at scale? The $lookup is O(n).</h4></div><blockquote class="quote-answer">"Same as subscriptions — **denormalize with atomic counters**:
+```javascript
+// On like toggle:
+await Video.findByIdAndUpdate(videoId, { $inc: { likesCount: 1 } });
+// On unlike toggle:
+await Video.findByIdAndUpdate(videoId, { $inc: { likesCount: -1 } });
+```
+The `$lookup` for count is fine for now but would be a bottleneck for videos with millions of likes."</blockquote><div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">What prevents a user from liking something twice?</h4></div><blockquote class="quote-answer">"The `findOne({ video, likeby })` check before creating. But a **compound unique index** would be the bulletproof solution:
+```javascript
+LikeSchema.index({ video: 1, likeby: 1 }, { unique: true, sparse: true });
+LikeSchema.index({ comment: 1, likeby: 1 }, { unique: true, sparse: true });
+```
+The `sparse: true` ignores documents where the field is null — necessary for polymorphic schemas."</blockquote><div class="divider"></div>
+<h2 class="section-title"><span class="section-num">5</span> Comments (Paginated)</h2><h3 class="subsection-title">How It Works in Your Code</h3><table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Key Detail</th>
+<th>Code Reference</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Paginated comments</td>
+<td><code>mongoose-aggregate-paginate-v2</code> plugin</td>
+<td><span class="code-link">📁 <code>comment.controller.js L82-85</code></span></td>
+</tr>
+<tr>
+<td>Newest first</td>
+<td><code>$sort: { createdAt: -1 }</code></td>
+<td><span class="code-link">📁 <code>L30-31</code></span></td>
+</tr>
+<tr>
+<td>Like count per comment</td>
+<td><code>$lookup</code> likes → <code>$size</code></td>
+<td><span class="code-link">📁 <code>L50-61</code></span></td>
+</tr>
+<tr>
+<td><code>isLiked</code> per comment per user</td>
+<td><code>$in: [req.user._id, &quot;$likes.likeby&quot;]</code></td>
+<td><span class="code-link">📁 <code>L62-67</code></span></td>
+</tr>
+<tr>
+<td>Cascade delete</td>
+<td>Deleting a comment also deletes its likes: <code>Like.deleteMany({ comment })</code></td>
+<td><span class="code-link">📁 <code>L197</code></span></td>
+</tr>
+<tr>
+<td>Owner authorization</td>
+<td>Only comment owner can update/delete</td>
+<td><span class="code-link">📁 <code>L148</code></span>, <span class="code-link">📁 <code>L189</code></span></td>
+</tr>
+<tr>
+<td>Populate owner on create</td>
+<td><code>.populate(&quot;owner&quot;, &quot;fullname username avatar&quot;)</code></td>
+<td><span class="code-link">📁 <code>L116-118</code></span></td>
+</tr>
+</tbody></table>
+<h3 class="subsection-title">Cross Questions</h3><div class="divider"></div>
+<div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">Why `aggregatePaginate` instead of `.skip().limit()`?</h4></div><blockquote class="quote-answer">"`.skip(n)` literally scans and discards `n` documents — O(n) for page 1000. `aggregatePaginate` uses the same under the hood but gives me **metadata** (`totalDocs`, `totalPages`, `hasNextPage`, `hasPrevPage`) which the frontend needs for pagination UI. For truly scalable pagination, I'd use **cursor-based pagination** — 'give me comments after this `createdAt` timestamp' using `$match: { createdAt: { $lt: lastSeenTimestamp } }` — which is always O(limit)."</blockquote><div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">What about nested/threaded comments (replies)?</h4></div><blockquote class="quote-answer">"My current schema is flat — every comment references the video directly. For threading, I'd add:
+```javascript
+parentComment: { type: Schema.Types.ObjectId, ref: 'Comment', default: null }
+```
+Then filter top-level comments (`parentComment: null`) and fetch replies separately. YouTube uses this approach — max 1 level of nesting. For deep threading (Reddit-style), I'd use a **materialized path** pattern: `path: '/rootId/parentId/thisId'`."</blockquote><div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">Should the video owner be able to delete any comment on their video?</h4></div><blockquote class="quote-answer">"Currently, only the comment owner can delete — but yes, the video owner should also have moderation rights. I'd change the authorization check:
+```javascript
+const video = await Video.findById(comment.video);
+if (comment.owner.toString() !== req.user._id.toString() 
+    && video.owner.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, 'Not authorized');
+}
+```"</blockquote><div class="divider"></div>
+<h2 class="section-title"><span class="section-num">6</span> Watch History</h2><h3 class="subsection-title">How It Works in Your Code</h3><p><strong>Schema</strong> — embedded array on User:</p>
+<pre><code class="language-javascript">watchHistory: [{ type: Schema.Types.ObjectId, ref: &quot;Video&quot; }]
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Key Detail</th>
+<th>Code Reference</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Add to history</td>
+<td><code>$addToSet</code> (no duplicates) when video is viewed</td>
+<td><span class="code-link">📁 <code>video.controller.js L199-201</code></span></td>
+</tr>
+<tr>
+<td>Get history</td>
+<td>Aggregation: <code>$lookup</code> videos → nested <code>$lookup</code> owners → <code>$first</code></td>
+<td><span class="code-link">📁 <code>user.controller.js L442-491</code></span></td>
+</tr>
+<tr>
+<td>Cleanup on video delete</td>
+<td><code>User.updateMany({}, { $pull: { watchHistory: videoId } })</code></td>
+<td><span class="code-link">📁 <code>video.controller.js L381-384</code></span></td>
+</tr>
+<tr>
+<td>ObjectId conversion</td>
+<td><code>new mongoose.Types.ObjectId()</code> in aggregation <code>$match</code></td>
+<td><span class="code-link">📁 <code>user.controller.js L446</code></span></td>
+</tr>
+</tbody></table>
+<h3 class="subsection-title">Cross Questions</h3><div class="divider"></div>
+<div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">Why `$addToSet` instead of `$push`?</h4></div><blockquote class="quote-answer">"`$addToSet` only adds the value if it doesn't already exist in the array — built-in **deduplication**. With `$push`, watching a video 10 times adds it 10 times. `$addToSet` keeps it once."</blockquote><div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">But then you lose the 'last watched' ordering. How do you fix that?</h4></div><blockquote class="quote-answer">"Great catch — `$addToSet` doesn't update position if the video already exists. So rewatching a video won't move it to the top. To fix this, I'd use:
+```javascript
+await User.findByIdAndUpdate(req.user._id, {
+    $pull: { watchHistory: videoId }       // remove first
+});
+await User.findByIdAndUpdate(req.user._id, {
+    $push: { watchHistory: { $each: [videoId], $position: 0 } }  // add to front
+});
+```
+Or better: use a **separate WatchHistory collection** with timestamps:
+```javascript
+{ user: ObjectId, video: ObjectId, watchedAt: Date, watchDuration: Number }
+```"</blockquote><div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">The embedded array approach — what's the scaling limit?</h4></div><blockquote class="quote-answer">"Each ObjectId is 12 bytes. A user who watches 10,000 videos = 120KB — well within the 16MB limit. But if we add watch timestamps, progress, etc., it grows fast. For a production platform, I'd move to a **separate collection** with TTL (auto-delete after 90 days) and cursor-based pagination."</blockquote><div class="divider"></div>
+<h2 class="section-title"><span class="section-num">7</span> Architecture-Level Cross Questions</h2><div class="divider"></div>
+<div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">Explain your error handling strategy.</h4></div><blockquote class="quote-answer">"Three layers:
+1. **`asyncHandler` wrapper** ([asyncHandler.js](file:///Users/jeel/Desktop/streaming_platform/src/utils/asyncHandler.js)) — catches all async errors and passes to `next()`, eliminating try-catch in every route
+2. **`ApiError` class** ([ApiError.js](file:///Users/jeel/Desktop/streaming_platform/src/utils/ApiError.js)) — custom error with `statusCode`, `message`, and `errors` array for consistent error shape
+3. **Global error handler** ([app.js L46-57](file:///Users/jeel/Desktop/streaming_platform/src/app.js#L46-L57)) — catches everything, returns JSON with stack trace in development only
+
+This means a thrown `new ApiError(404, 'Not found')` anywhere in the app becomes a proper `{ success: false, statusCode: 404, message: 'Not found' }` JSON response."</blockquote><div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">Why MongoDB aggregation pipelines instead of multiple queries?</h4></div><blockquote class="quote-answer">"Aggregation pipelines run **server-side in MongoDB** — the data transformation happens at the database level, not in Node.js. Doing multiple queries (find video → find likes → find owner) means:
+1. Multiple network round-trips to the DB
+2. Joining data in application memory (more RAM, more CPU)
+3. No ability to compute fields like `likesCount` or `isSubscribed` at the DB level
+
+The aggregation does everything in **one round-trip**: `$match` → `$lookup` (join) → `$addFields` (compute) → `$project` (select fields). The tradeoff is readability — aggregation pipelines are harder to debug."</blockquote><div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">What happens to Cloudinary assets when a video is deleted?</h4></div><blockquote class="quote-answer">"I handle the **full asset lifecycle** ([video.controller.js L354-373](file:///Users/jeel/Desktop/streaming_platform/src/controllers/video.controller.js#L354-L373)):
+1. Delete video file from Cloudinary (`resource_type: 'video'`)
+2. Delete thumbnail from Cloudinary
+3. Delete all associated comments
+4. Delete all associated likes
+5. Remove from all users' watch histories
+
+I also clean up old thumbnails when updating — extract the `public_id` from the URL and call `cloudinary.uploader.destroy()`."</blockquote><div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">How do you handle video search?</h4></div><blockquote class="quote-answer">"I use **MongoDB `$regex`** on title and description with case-insensitive matching ([video.controller.js L56-63](file:///Users/jeel/Desktop/streaming_platform/src/controllers/video.controller.js#L56-L63)). This works for small datasets but is O(n) — it scans every document. For production, I'd use:
+1. **MongoDB Atlas Search** (Lucene-based full-text search with fuzzy matching, synonyms, and relevance scoring)
+2. Or **Elasticsearch** as a dedicated search index synced via change streams"</blockquote><div class="question-header"><span class="q-badge">Question</span><h4 class="q-title">Your CORS config uses `process.env.CORS_ORIGIN`. What if you need multiple origins?</h4></div><blockquote class="quote-answer">"Currently it's a single origin string. For multiple origins, I'd use a function:
+```javascript
+cors({
+    origin: (origin, callback) => {
+        const whitelist = process.env.CORS_ORIGINS.split(',');
+        if (!origin || whitelist.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
+})
+```"</blockquote><div class="divider"></div>
+<h2 class="section-title"><span class="section-num">8</span> Weaknesses to Acknowledge Proactively</h2><p>Being upfront about these shows <strong>self-awareness</strong> — interviewers love it.</p>
+<table>
+<thead>
+<tr>
+<th>Weakness</th>
+<th>Where</th>
+<th>What You&#39;d Improve</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>DB query per request</strong> in auth middleware</td>
+<td><span class="code-link">📁 <code>auth.middleware.js L20</code></span></td>
+<td>Redis cache for user data</td>
+</tr>
+<tr>
+<td><strong>No rate limiting</strong></td>
+<td>No middleware</td>
+<td>Express-rate-limit + Redis store</td>
+</tr>
+<tr>
+<td><strong>No input sanitization</strong></td>
+<td>Comment content, descriptions</td>
+<td><code>express-mongo-sanitize</code> to prevent NoSQL injection</td>
+</tr>
+<tr>
+<td><strong>No compound unique indexes</strong></td>
+<td>Likes, Subscriptions</td>
+<td>Add <code>{ video: 1, likeby: 1, unique: true }</code></td>
+</tr>
+<tr>
+<td><strong>Sequential Cloudinary uploads</strong></td>
+<td>Thumbnail service</td>
+<td><code>Promise.all()</code> for parallel uploads</td>
+</tr>
+<tr>
+<td><strong>$regex search</strong> is not scalable</td>
+<td>Video search</td>
+<td>MongoDB Atlas Search or Elasticsearch</td>
+</tr>
+<tr>
+<td><strong>No pagination</strong> on watch history</td>
+<td>User controller</td>
+<td>Add cursor-based pagination</td>
+</tr>
+<tr>
+<td><strong>Video delete doesn&#39;t clean playlists</strong></td>
+<td>Video controller</td>
+<td>Add <code>Playlist.updateMany({ $pull })</code></td>
+</tr>
+<tr>
+<td><strong>View count not debounced</strong></td>
+<td>Video controller L180-183</td>
+<td>Add per-user cooldown (Redis) to prevent refresh-spamming views</td>
+</tr>
+</tbody></table>
+<div class="divider"></div>
+<h2 class="section-title"><span class="section-num">9</span> The "Walk Me Through a Request" Question</h2><p>Interviewers often say: <strong>&quot;Walk me through what happens when a user likes a video.&quot;</strong></p>
+<pre><code>1. Frontend sends <span class="http-badge http-post">POST</span> /api/v1/likes/toggle/v/:videoId
+   └── Cookie: accessToken=eyJhbG... (attached automatically by browser)
+
+2. Express middleware chain:
+   └── cookieParser() → extracts cookies into req.cookies
+   └── verifyJWT middleware → reads req.cookies.accessToken
+       → jwt.verify() with ACCESS_TOKEN_SECRET
+       → User.findById(decoded.id) → attaches user to req.user
+       → calls next()
+
+3. toggleVideoLike controller:
+   └── Validates videoId with mongoose.isValidObjectId()
+   └── Video.findById(videoId) — confirms video exists
+   └── Like.findOne({ video: videoId, likeby: req.user._id })
+       ├── If found → Like.findByIdAndDelete() → responds { isLiked: false }
+       └── If not found → Like.create() → responds { isLiked: true }
+
+4. Response: { statusCode: 200, data: { isLiked: true }, message: &quot;Video liked&quot; }
+</code></pre>
+<div class="divider"></div>
+<h2 class="section-title"><span class="section-num">10</span> Quick Cheat Sheet — Key Terms to Use</h2><table>
+<thead>
+<tr>
+<th>Say This</th>
+<th>Not This</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&quot;Junction table / join table pattern&quot;</td>
+<td>&quot;I made a separate collection&quot;</td>
+</tr>
+<tr>
+<td>&quot;Compound unique index&quot;</td>
+<td>&quot;I check for duplicates&quot;</td>
+</tr>
+<tr>
+<td>&quot;Token rotation strategy&quot;</td>
+<td>&quot;I refresh the token&quot;</td>
+</tr>
+<tr>
+<td>&quot;Polymorphic association&quot;</td>
+<td>&quot;I put everything in one collection&quot;</td>
+</tr>
+<tr>
+<td>&quot;Denormalized counter cache&quot;</td>
+<td>&quot;I count using $size&quot;</td>
+</tr>
+<tr>
+<td>&quot;Cursor-based pagination&quot;</td>
+<td>&quot;I use skip and limit&quot;</td>
+</tr>
+<tr>
+<td>&quot;Idempotent toggle&quot;</td>
+<td>&quot;I check if it exists&quot;</td>
+</tr>
+<tr>
+<td>&quot;Server-side revocation&quot;</td>
+<td>&quot;I delete the token from DB&quot;</td>
+</tr>
+<tr>
+<td>&quot;Aggregation pipeline&quot;</td>
+<td>&quot;I use $lookup&quot;</td>
+</tr>
+<tr>
+<td>&quot;Asset lifecycle management&quot;</td>
+<td>&quot;I delete from Cloudinary&quot;</td>
+</tr>
+</tbody></table>
+<div class="divider"></div>
+<div class="callout callout-tip"><div class="callout-icon">💡</div><div class="callout-content"><strong>PRO TIP</strong><br/>**Interview pro tip:** When asked about any feature, structure your answer as:
+1. **Schema design** — "Here's how I modeled the data..."
+2. **API design** — "The endpoint is [METHOD] [path]..."
+3. **Business logic** — "The key logic is... (toggle, authorization, etc.)"
+4. **Query pattern** — "I use aggregation because..."
+5. **Weakness + improvement** — "At scale, I'd change X to Y because..."</div></div>
+    </div>
+</body>
+</html>

@@ -8,6 +8,8 @@ import { Comment } from "../models/comment.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { v2 as cloudinary } from "cloudinary";
 import mongoose from "mongoose";
+import { incrementView } from "../services/viewCounter.service.js";
+import { cacheWrap, cacheDel, cacheInvalidatePattern } from "../utils/cache.js";
 
 // helper to extract cloudinary public_id from url for deletion
 const getCloudinaryPublicId = (url) => {
@@ -32,11 +34,11 @@ const getAllVideos = asyncHandler(async (req, res) => {
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
 
-    const pipeline = [];
+    const pipeline = []; // first we will aggregate all filters and then make query at onces
 
     // filter by published videos only (unless owner is requesting their own)
     if (userId && req.user?._id.toString() === userId) {
-        // owner can see their own unpublished videos
+
         pipeline.push({
             $match: { owner: new mongoose.Types.ObjectId(userId) },
         });
@@ -47,7 +49,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
                 ispublished: true,
             },
         });
-    } else {
+    } else { // no channel specified so home page type...
         pipeline.push({ $match: { ispublished: true } });
     }
 
@@ -56,8 +58,8 @@ const getAllVideos = asyncHandler(async (req, res) => {
         pipeline.push({
             $match: {
                 $or: [
-                    { title: { $regex: query, $options: "i" } },
-                    { description: { $regex: query, $options: "i" } },
+                    { title: { $regex: query, $options: "i" } }, // regex is pattern matching query instead of match exactly that word 
+                    { description: { $regex: query, $options: "i" } }, // options is for ignore case sensitive 
                 ],
             },
         });
@@ -176,12 +178,11 @@ const getVideoById = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid video ID");
     }
 
-    // increment view count
-    const video = await Video.findByIdAndUpdate(
-        videoId,
-        { $inc: { views: 1 } },
-        { new: true }
-    );
+    // increment view count via Redis buffer (non-blocking, O(1))
+    // instead of direct MongoDB write on every request
+    await incrementView(videoId);
+
+    const video = await Video.findById(videoId);
 
     if (!video) {
         throw new ApiError(404, "Video not found");
@@ -197,60 +198,69 @@ const getVideoById = asyncHandler(async (req, res) => {
 
     // add video to user's watch history
     await User.findByIdAndUpdate(req.user._id, {
-        $addToSet: { watchHistory: videoId },
+        $addToSet: { watchHistory: videoId }, // addtoset will not add video if already exists in watchhistory... 
     });
 
     // get video with owner details using aggregation
-    const videoDetails = await Video.aggregate([
-        { $match: { _id: new mongoose.Types.ObjectId(videoId) } },
-        {
-            $lookup: {
-                from: "users",
-                localField: "owner",
-                foreignField: "_id",
-                as: "owner",
-                pipeline: [
-                    {
-                        $project: {
-                            fullname: 1,
-                            username: 1,
-                            avatar: 1,
-                        },
-                    },
-                ],
-            },
-        },
-        {
-            $lookup: {
-                from: "likes",
-                localField: "_id",
-                foreignField: "video",
-                as: "likes",
-            },
-        },
-        {
-            $addFields: {
-                owner: { $first: "$owner" },
-                likesCount: { $size: "$likes" },
-                isLiked: {
-                    $cond: {
-                        if: {
-                            $in: [req.user._id, "$likes.likeby"],
-                        },
-                        then: true,
-                        else: false,
+    // Cache the aggregation result for 2 minutes (per video+user combo for isLiked accuracy)
+    const cacheKey = `video:${videoId}:user:${req.user._id}`;
+    const videoDetails = await cacheWrap(
+        cacheKey,
+        async () => {
+            const result = await Video.aggregate([
+                { $match: { _id: new mongoose.Types.ObjectId(videoId) } }, // why match again ? bec aggregation always starts with all documents
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "owner",
+                        foreignField: "_id",
+                        as: "owner",
+                        pipeline: [
+                            {
+                                $project: {
+                                    fullname: 1,
+                                    username: 1,
+                                    avatar: 1,
+                                },
+                            },
+                        ],
                     },
                 },
-            },
+                {
+                    $lookup: {
+                        from: "likes",
+                        localField: "_id",
+                        foreignField: "video",
+                        as: "likes",
+                    },
+                },
+                {
+                    $addFields: { // does not fetch any data just add or update feilds
+                        owner: { $first: "$owner" },
+                        likesCount: { $size: "$likes" },
+                        isLiked: {
+                            $cond: {
+                                if: {
+                                    $in: [req.user._id, "$likes.likeby"],
+                                },
+                                then: true,
+                                else: false,
+                            },
+                        },
+                    },
+                },
+                {
+                    $project: {
+                        likes: 0, //  to keep api response small as we just need number of likecounts
+                    },
+                },
+            ]);
+            return result;
         },
-        {
-            $project: {
-                likes: 0, // exclude the raw likes array
-            },
-        },
-    ]);
+        120 // 2 minute TTL
+    );
 
-    if (!videoDetails?.length) {
+    if (!videoDetails?.length) { 
         throw new ApiError(404, "Video not found");
     }
 
@@ -325,6 +335,9 @@ const updateVideo = asyncHandler(async (req, res) => {
         { new: true }
     );
 
+    // Invalidate cached video data
+    await cacheInvalidatePattern(`video:${videoId}:*`);
+
     return res
         .status(200)
         .json(
@@ -376,6 +389,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
     await Comment.deleteMany({ video: videoId });
     await Like.deleteMany({ video: videoId });
 
+
     // remove from users' watch history
     await User.updateMany(
         { watchHistory: videoId },
@@ -383,6 +397,10 @@ const deleteVideo = asyncHandler(async (req, res) => {
     );
 
     await Video.findByIdAndDelete(videoId);
+
+    // Invalidate cached video data + trending cache
+    await cacheInvalidatePattern(`video:${videoId}:*`);
+    await cacheDel("trending:page:1:limit:10");
 
     return res
         .status(200)
@@ -412,7 +430,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
     }
 
     video.ispublished = !video.ispublished;
-    await video.save({ validateBeforeSave: false });
+    await video.save({ validateBeforeSave: false }); // this is just updating one field so no need to validate before save
 
     return res
         .status(200)

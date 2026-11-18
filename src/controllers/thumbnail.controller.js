@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Video } from "../models/video.model.js";
 import { generateThumbnailSuggestions } from "../services/thumbnail.service.js";
+import { enqueueThumbnailGeneration } from "../queues/thumbnail.queue.js";
 import { v2 as cloudinary } from "cloudinary";
 import mongoose from "mongoose";
 
@@ -16,6 +17,7 @@ const getCloudinaryPublicId = (url) => {
 };
 
 // POST /api/v1/ai/thumbnails/:videoId — generate AI thumbnail suggestions
+// Now enqueues a background job instead of blocking the request
 const suggestThumbnails = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
 
@@ -43,23 +45,46 @@ const suggestThumbnails = asyncHandler(async (req, res) => {
     }
 
     try {
-        const result = await generateThumbnailSuggestions(videoId);
+        // Enqueue the thumbnail generation job — returns immediately
+        const job = await enqueueThumbnailGeneration(videoId, req.user._id.toString());
 
         return res
-            .status(200)
+            .status(202)
             .json(
                 new ApiResponse(
-                    200,
-                    result,
-                    "Thumbnail suggestions generated successfully"
+                    202,
+                    {
+                        videoId: video._id,
+                        jobId: job.id,
+                        status: "queued",
+                        message: "Thumbnail generation job has been queued. Poll the suggestions endpoint to check results.",
+                    },
+                    "Thumbnail generation job enqueued successfully"
                 )
             );
     } catch (error) {
-        console.error("Thumbnail suggestion error:", error);
-        throw new ApiError(
-            500,
-            `Failed to generate thumbnail suggestions: ${error.message}`
-        );
+        // If queue fails, fall back to synchronous processing
+        console.warn("[Thumbnails] Queue unavailable, falling back to synchronous:", error.message);
+
+        try {
+            const result = await generateThumbnailSuggestions(videoId);
+
+            return res
+                .status(200)
+                .json(
+                    new ApiResponse(
+                        200,
+                        result,
+                        "Thumbnail suggestions generated successfully (synchronous fallback)"
+                    )
+                );
+        } catch (syncError) {
+            console.error("Thumbnail suggestion error:", syncError);
+            throw new ApiError(
+                500,
+                `Failed to generate thumbnail suggestions: ${syncError.message}`
+            );
+        }
     }
 });
 

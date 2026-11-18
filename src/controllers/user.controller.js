@@ -1,6 +1,3 @@
-// this is the controller for user related operations, such as registering a user, logging in a user, etc.
-// keep comments sort easy to read 
-
 import {asyncHandler} from "../utils/asyncHandler.js";
 import {ApiError} from "../utils/ApiError.js";
 import {User} from "../models/user.model.js";
@@ -36,9 +33,9 @@ const registerUser=asyncHandler(async(req,res)=>{
     console.log("email",email);
     
     if(
-        [fullname,email,password,username].some((field)=>field?.trim()=== "") // this checks if any of the required fields (fullname, email, password, username) are empty or contain only whitespace.
+        [fullname,email,password,username].some((field)=>field?.trim()=== "") 
     ){
-        throw new ApiError(400,"All fields are required") // if any of the required fields are empty, an ApiError is thrown with a status code of 400 and a message indicating that all fields are required.
+        throw new ApiError(400,"All fields are required") 
     }
 
     const existingUser=await User.findOne({

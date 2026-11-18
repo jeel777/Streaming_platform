@@ -9,9 +9,11 @@ import {
     deleteTranscript,
 } from "../services/transcription.service.js";
 import { generateTranscriptSummary } from "../services/gemini.service.js";
+import { enqueueTranscription } from "../queues/transcription.queue.js";
 import mongoose from "mongoose";
 
 // POST /api/v1/ai/transcripts/:videoId — generate transcript for a video
+// Now enqueues a background job instead of blocking the request
 const transcribeVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
     const { model = "base", language } = req.body;
@@ -43,41 +45,75 @@ const transcribeVideo = asyncHandler(async (req, res) => {
         );
     }
 
+    // Check if transcript already exists and is completed
+    const existingTranscript = await Transcript.findOne({ video: videoId });
+    if (existingTranscript && existingTranscript.status === "completed") {
+        throw new ApiError(
+            409,
+            "Transcript already exists for this video. Delete it first to regenerate."
+        );
+    }
+
     try {
-        const transcript = await generateTranscript(videoId, {
+        // Enqueue the transcription job — returns immediately
+        const job = await enqueueTranscription(videoId, {
             model,
             language: language || null,
+            userId: req.user._id.toString(),
         });
 
-        return res.status(201).json(
+        return res.status(202).json(
             new ApiResponse(
-                201,
+                202,
                 {
                     videoId: video._id,
                     videoTitle: video.title,
-                    transcript: {
-                        id: transcript._id,
-                        fullText: transcript.fullText,
-                        segments: transcript.segments,
-                        language: transcript.language,
-                        duration: transcript.duration,
-                        modelUsed: transcript.modelUsed,
-                        status: transcript.status,
-                    },
+                    jobId: job.id,
+                    status: "queued",
+                    message: "Transcription job has been queued. Poll the transcript endpoint to check status.",
                 },
-                "Transcript generated successfully"
+                "Transcription job enqueued successfully"
             )
         );
     } catch (error) {
-        // Check for "already exists" error
-        if (error.message.includes("already exists")) {
-            throw new ApiError(409, error.message);
+        // If queue fails, fall back to synchronous processing
+        console.warn("[Transcription] Queue unavailable, falling back to synchronous:", error.message);
+
+        try {
+            const transcript = await generateTranscript(videoId, {
+                model,
+                language: language || null,
+            });
+
+            return res.status(201).json(
+                new ApiResponse(
+                    201,
+                    {
+                        videoId: video._id,
+                        videoTitle: video.title,
+                        transcript: {
+                            id: transcript._id,
+                            fullText: transcript.fullText,
+                            segments: transcript.segments,
+                            language: transcript.language,
+                            duration: transcript.duration,
+                            modelUsed: transcript.modelUsed,
+                            status: transcript.status,
+                        },
+                    },
+                    "Transcript generated successfully (synchronous fallback)"
+                )
+            );
+        } catch (syncError) {
+            if (syncError.message.includes("already exists")) {
+                throw new ApiError(409, syncError.message);
+            }
+            console.error("Transcription error:", syncError);
+            throw new ApiError(
+                500,
+                `Failed to generate transcript: ${syncError.message}`
+            );
         }
-        console.error("Transcription error:", error);
-        throw new ApiError(
-            500,
-            `Failed to generate transcript: ${error.message}`
-        );
     }
 });
 
